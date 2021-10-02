@@ -29,13 +29,13 @@ defined('MOODLE_INTERNAL') || die();
 
 
 /**
- * Generates the output for YOURQTYPENAME questions.
+ * Generates the output for vmchecker questions.
  *
  * @copyright  THEYEAR YOURNAME (YOURCONTACTINFO)
 
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qtype_YOURQTYPENAME_renderer extends qtype_renderer {
+class qtype_vmchecker_renderer extends qtype_renderer {
     public function formulation_and_controls(question_attempt $qa,
             question_display_options $options) {
 
@@ -60,6 +60,12 @@ class qtype_YOURQTYPENAME_renderer extends qtype_renderer {
                     $question->get_validation_error(array('answer' => $currentanswer)),
                     array('class' => 'validationerror'));
         }*/
+        $result .= html_writer::empty_tag('input', array('type' => 'hidden',
+        'name' => 'ceva' . ':itemid', 'value' => '$draftitemid')) .
+        html_writer::tag('noscript', html_writer::tag('div',
+            html_writer::tag('object', '', array('type' => 'text/html',
+                'data' => '$nonjspickerurl', 'height' => 160, 'width' => 600,
+                'style' => 'border: 1px solid #000;'))));;
         return $result;
     }
 

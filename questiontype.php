@@ -29,17 +29,17 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/questionlib.php');
 require_once($CFG->dirroot . '/question/engine/lib.php');
-require_once($CFG->dirroot . '/question/type/YOURQTYPENAME/question.php');
+require_once($CFG->dirroot . '/question/type/vmchecker/question.php');
 
 
 /**
- * The YOURQTYPENAME question type.
+ * The vmchecker question type.
  *
  * @copyright  THEYEAR YOURNAME (YOURCONTACTINFO)
 
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qtype_YOURQTYPENAME extends question_type {
+class qtype_vmchecker extends question_type {
 
     public function move_files($questionid, $oldcontextid, $newcontextid) {
         parent::move_files($questionid, $oldcontextid, $newcontextid);
@@ -67,6 +67,6 @@ class qtype_YOURQTYPENAME extends question_type {
 
     public function get_possible_responses($questiondata) {
         // TODO.
-        return array();
+        return array('ceva1');
     }
 }

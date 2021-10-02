@@ -23,14 +23,15 @@
 
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-$string['pluginname'] = 'YOURQTYPENAME';
+$string['pluginname'] = 'vmchecker';
 $string['pluginname_help'] = 'Create a cloze question type with embedded response fields in the question text to enter a numeric
 or text value or select a value from a number of options.';
-$string['pluginname_link'] = 'question/type/YOURQTYPENAME';
-$string['pluginnameadding'] = 'Adding a YOURQTYPENAME question';
-$string['pluginnameediting'] = 'Editing a YOURQTYPENAME question';
-$string['pluginnamesummary'] = 'A YOURQTYPENAME question type which allows the embedding of the response fields for various available
+$string['pluginname_link'] = 'question/type/vmchecker';
+$string['pluginnameadding'] = 'Adding a vmchecker question';
+$string['pluginnameediting'] = 'Editing a vmchecker question';
+$string['pluginnamesummary'] = 'A vmchecker question type which allows the embedding of the response fields for various available
 sub questions in the question text.
 
 So the student can enter a numeric or short text answer or choose an answer or answer(s) from
  using a select box, check boxes or radio boxes.';
+$string['question_gitlab_url'] = 'Gitlab URL';

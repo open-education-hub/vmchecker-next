@@ -35,10 +35,13 @@ defined('MOODLE_INTERNAL') || die();
 
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qtype_YOURQTYPENAME_edit_form extends question_edit_form {
+class qtype_vmchecker_edit_form extends question_edit_form {
 
     protected function definition_inner($mform) {
-        $this->add_interactive_settings();
+        $mform->addElement('text', 'gitlab_url', get_string('question_gitlab_url', 'qtype_vmchecker'),
+                array('size' => 50, 'maxlength' => 255));
+        $mform->setType('gitlab_url', PARAM_TEXT);
+        $mform->addRule('gitlab_url', null, 'required', null, 'client');
     }
 
     protected function data_preprocessing($question) {
@@ -48,7 +51,11 @@ class qtype_YOURQTYPENAME_edit_form extends question_edit_form {
         return $question;
     }
 
+    protected function add_tag_fields($mform) {
+        // No tag field
+    }
+
     public function qtype() {
-        return 'YOURQTYPENAME';
+        return 'vmchecker';
     }
 }
