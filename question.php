@@ -1,95 +1,173 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
-//
-// Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Moodle is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-
-/**
- * vmchecker question definition class.
- *
- * @package    qtype
- * @subpackage vmchecker
- * @copyright  THEYEAR YOURNAME (YOURCONTACTINFO)
-
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
 
 defined('MOODLE_INTERNAL') || die();
 
+require_once($CFG->dirroot . '/question/type/questionbase.php');
 
 /**
  * Represents a vmchecker question.
  *
- * @copyright  THEYEAR YOURNAME (YOURCONTACTINFO)
-
+ * @copyright  2009 The Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qtype_vmchecker_question extends question_graded_automatically_with_countback {
+class qtype_vmchecker_question extends question_with_responses {
+
+    public $responseformat;
+
+    /** @var int Indicates whether an inline response is required ('0') or optional ('1')  */
+    public $responserequired;
+
+    public $responsefieldlines;
+    public $attachments;
+
+    /** @var int The number of attachments required for a response to be complete. */
+    public $attachmentsrequired;
+
+    public $graderinfo;
+    public $graderinfoformat;
+    public $responsetemplate;
+    public $responsetemplateformat;
+
+    /** @var array The string array of file types accepted upon file submission. */
+    public $filetypeslist;
+
+    public function make_behaviour(question_attempt $qa, $preferredbehaviour) {
+        return question_engine::make_behaviour('manualgraded', $qa, $preferredbehaviour);
+    }
+
+    /**
+     * @param moodle_page the page we are outputting to.
+     * @return qtype_vmchecker_format_renderer_base the response-format-specific renderer.
+     */
+    public function get_format_renderer(moodle_page $page) {
+        return $page->get_renderer('qtype_vmchecker', 'format_' . $this->responseformat);
+    }
 
     public function get_expected_data() {
-        // TODO.
-        return array();
+        if ($this->responseformat == 'editorfilepicker') {
+            $expecteddata = array('answer' => question_attempt::PARAM_RAW_FILES);
+        } else {
+            $expecteddata = array('answer' => PARAM_RAW);
+        }
+        $expecteddata['answerformat'] = PARAM_ALPHANUMEXT;
+        if ($this->attachments != 0) {
+            $expecteddata['attachments'] = question_attempt::PARAM_FILES;
+        }
+        return $expecteddata;
     }
 
     public function summarise_response(array $response) {
-        // TODO.
+        $output = null;
+
+        if (isset($response['answer'])) {
+            $output .= question_utils::to_plain_text($response['answer'],
+                $response['answerformat'], array('para' => false));
+        }
+
+        if (isset($response['attachments'])  && $response['attachments']) {
+            $attachedfiles = [];
+            foreach ($response['attachments']->get_files() as $file) {
+                $attachedfiles[] = $file->get_filename() . ' (' . display_size($file->get_filesize()) . ')';
+            }
+            if ($attachedfiles) {
+                $output .= get_string('attachedfiles', 'qtype_vmchecker', implode(', ', $attachedfiles));
+            }
+        }
+        return $output;
+    }
+
+    public function un_summarise_response(string $summary) {
+        if (!empty($summary)) {
+            return ['answer' => text_to_html($summary)];
+        } else {
+            return [];
+        }
+    }
+
+    public function get_correct_response() {
         return null;
     }
 
     public function is_complete_response(array $response) {
-        // TODO.
-        return true;
-    }
+        // Determine if the given response has online text and attachments.
+        $hasinlinetext = array_key_exists('answer', $response) && ($response['answer'] !== '');
+        $hasattachments = array_key_exists('attachments', $response)
+            && $response['attachments'] instanceof question_response_files;
 
-    public function get_validation_error(array $response) {
-        // TODO.
-        return '';
-    }
-
-    public function is_same_response(array $prevresponse, array $newresponse) {
-        // TODO.
-        return question_utils::arrays_same_at_key_missing_is_blank(
-                $prevresponse, $newresponse, 'answer');
-    }
-
-
-    public function get_correct_response() {
-        // TODO.
-        return array();
-    }
-
-
-    public function check_file_access($qa, $options, $component, $filearea,
-            $args, $forcedownload) {
-        // TODO.
-        if ($component == 'question' && $filearea == 'hint') {
-            return $this->check_hint_file_access($qa, $options, $args);
-
+        // Determine the number of attachments present.
+        if ($hasattachments) {
+            // Check the filetypes.
+            $filetypesutil = new \core_form\filetypes_util();
+            $whitelist = $filetypesutil->normalize_file_types($this->filetypeslist);
+            $wrongfiles = array();
+            foreach ($response['attachments']->get_files() as $file) {
+                if (!$filetypesutil->is_allowed_file_type($file->get_filename(), $whitelist)) {
+                    $wrongfiles[] = $file->get_filename();
+                }
+            }
+            if ($wrongfiles) { // At least one filetype is wrong.
+                return false;
+            }
+            $attachcount = count($response['attachments']->get_files());
         } else {
-            return parent::check_file_access($qa, $options, $component, $filearea,
-                    $args, $forcedownload);
+            $attachcount = 0;
+        }
+
+        // Determine if we have /some/ content to be graded.
+        $hascontent = $hasinlinetext || ($attachcount > 0);
+
+        // Determine if we meet the optional requirements.
+        $meetsinlinereq = $hasinlinetext || (!$this->responserequired) || ($this->responseformat == 'noinline');
+        $meetsattachmentreq = ($attachcount >= $this->attachmentsrequired);
+
+        // The response is complete iff all of our requirements are met.
+        return $hascontent && $meetsinlinereq && $meetsattachmentreq;
+    }
+
+    public function is_gradable_response(array $response) {
+        // Determine if the given response has online text and attachments.
+        // TODO: DO stuff with response
+        if (array_key_exists('answer', $response) && ($response['answer'] !== '')) {
+            return true;
+        } else if (array_key_exists('attachments', $response)
+                && $response['attachments'] instanceof question_response_files) {
+            return true;
+        } else {
+            return false;
         }
     }
 
-    public function grade_response(array $response) {
-        // TODO.
-        $fraction = 0;
-        return array($fraction, question_state::graded_state_for_fraction($fraction));
+    public function is_same_response(array $prevresponse, array $newresponse) {
+        if (array_key_exists('answer', $prevresponse) && $prevresponse['answer'] !== $this->responsetemplate) {
+            $value1 = (string) $prevresponse['answer'];
+        } else {
+            $value1 = '';
+        }
+        if (array_key_exists('answer', $newresponse) && $newresponse['answer'] !== $this->responsetemplate) {
+            $value2 = (string) $newresponse['answer'];
+        } else {
+            $value2 = '';
+        }
+        return $value1 === $value2 && ($this->attachments == 0 ||
+                question_utils::arrays_same_at_key_missing_is_blank(
+                $prevresponse, $newresponse, 'attachments'));
     }
 
-    public function compute_final_grade($responses, $totaltries) {
-        // TODO.
-        return 0;
+    public function check_file_access($qa, $options, $component, $filearea, $args, $forcedownload) {
+        if ($component == 'question' && $filearea == 'response_attachments') {
+            // Response attachments visible if the question has them.
+            return $this->attachments != 0;
+
+        } else if ($component == 'question' && $filearea == 'response_answer') {
+            // Response attachments visible if the question has them.
+            return $this->responseformat === 'editorfilepicker';
+
+        } else if ($component == 'qtype_vmchecker' && $filearea == 'graderinfo') {
+            return $options->manualcomment && $args[0] == $this->id;
+
+        } else {
+            return parent::check_file_access($qa, $options, $component,
+                    $filearea, $args, $forcedownload);
+        }
     }
 }

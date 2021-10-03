@@ -1,0 +1,25 @@
+.que.vmchecker textarea.qtype_vmchecker_response {
+    width: 100%;
+}
+
+.que.vmchecker textarea.qtype_vmchecker_response.qtype_vmchecker_plain {
+    white-space: pre-wrap;
+    font: inherit;
+}
+
+.que.vmchecker textarea.qtype_vmchecker_response.qtype_vmchecker_monospaced {
+    white-space: pre;
+    font-family: Andale Mono, Monaco, Courier New, DejaVu Sans Mono, monospace;
+}
+
+.que.vmchecker .qtype_vmchecker_response {
+    min-height: 3em;
+}
+
+.que.vmchecker .qtype_vmchecker_response.readonly {
+    background-color: white;
+}
+
+.que.vmchecker div.qtype_vmchecker_response textarea {
+    width: 100%;
+}
