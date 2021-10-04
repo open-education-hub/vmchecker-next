@@ -126,11 +126,21 @@ class qtype_vmchecker_question extends question_with_responses {
 
     public function is_gradable_response(array $response) {
         // Determine if the given response has online text and attachments.
-        // TODO: DO stuff with response
         if (array_key_exists('answer', $response) && ($response['answer'] !== '')) {
             return true;
         } else if (array_key_exists('attachments', $response)
                 && $response['attachments'] instanceof question_response_files) {
+            // TODO: DO stuff with response
+            $student_archive = current($response['attachments']->get_files());
+            $tmp_archive = $student_archive->copy_content_to_temp('files/' .  $student_archive->get_id());
+            $tmpdir = dirname($tmp_archive);
+            $repo = $tmpdir .'/repo';
+            mkdir($repo);
+            $res = shell_exec('git clone ssh://git@localhost:4444/acs/iocla/iocla-1.git ' . $repo);
+            $res = shell_exec('unzip -o ' . $tmp_archive . ' -d ' . $repo . '/skel 2>&1');
+            $branch_name =  'branch-' . $student_archive->get_id();
+            $res = shell_exec('cd ' . $repo . '; git checkout -b ' . $branch_name . '; git add .; git commit -m wip; git push origin ' . $branch_name);
+
             return true;
         } else {
             return false;
