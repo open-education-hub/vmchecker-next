@@ -10,7 +10,7 @@ require_once($CFG->dirroot . '/question/type/questionbase.php');
  * @copyright  2009 The Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qtype_vmchecker_question extends question_with_responses {
+class qtype_vmchecker_question extends question_graded_automatically {
 
     public $responseformat;
 
@@ -32,7 +32,11 @@ class qtype_vmchecker_question extends question_with_responses {
     public $filetypeslist;
 
     public function make_behaviour(question_attempt $qa, $preferredbehaviour) {
-        return question_engine::make_behaviour('manualgraded', $qa, $preferredbehaviour);
+        return question_engine::make_behaviour('deferredfeedback', $qa, $preferredbehaviour);
+    }
+
+    public function grade_response(array $response) {
+        return array(1, question_state::$gradedright);
     }
 
     /**
@@ -140,6 +144,33 @@ class qtype_vmchecker_question extends question_with_responses {
             $res = shell_exec('unzip -o ' . $tmp_archive . ' -d ' . $repo . '/skel 2>&1');
             $branch_name =  'branch-' . $student_archive->get_id();
             $res = shell_exec('cd ' . $repo . '; git checkout -b ' . $branch_name . '; git add .; git commit -m wip; git push origin ' . $branch_name);
+            $ch = curl_init();
+
+            $project_id = '6';
+            curl_setopt($ch, CURLOPT_URL, 'http://localhost:5555/api/v4/projects/' . $project_id . '/pipelines?ref=' . $branch_name);
+            $headers = [
+                'PRIVATE-TOKEN: yRBZTJvP1f68Rx2Dbs_z',
+            ];
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            do {
+                sleep(5);
+                $res = curl_exec($ch);
+                $json = json_decode($res, true)[0];
+            } while($json['status'] == 'running');
+
+            curl_setopt($ch, CURLOPT_URL, 'http://localhost:5555/api/v4/projects/' . $project_id . '/pipelines/' . $json['id'] . '/jobs');
+            $res = curl_exec($ch);
+            $json = json_decode($res, true)[0];
+
+            curl_setopt($ch, CURLOPT_URL, 'http://localhost:5555/api/v4/projects/' . $project_id . '/jobs/' . $json['id'] . '/trace');
+            $res = curl_exec($ch);
+
+            $matches = array();
+            preg_match('/Total: ([0-9]+)/', $res , $matches);
+            $score = intval($matches[1]);
+
+            curl_close($ch);
 
             return true;
         } else {
