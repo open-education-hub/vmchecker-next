@@ -62,21 +62,18 @@ class qtype_vmchecker extends question_type {
             $options->id = $DB->insert_record('qtype_vmchecker_options', $options);
         }
 
-        $options->responseformat = $formdata->responseformat;
-        $options->responserequired = $formdata->responserequired;
-        $options->responsefieldlines = $formdata->responsefieldlines;
-        $options->attachments = $formdata->attachments;
-        $options->attachmentsrequired = $formdata->attachmentsrequired;
-        if (!isset($formdata->filetypeslist)) {
-            $options->filetypeslist = null;
-        } else {
-            $options->filetypeslist = $formdata->filetypeslist;
-        }
+        $options->responseformat = 'editorfilepicker';
+        $options->responserequired = 1;
+        $options->responsefieldlines = 0;
+        $options->attachments = 1;
+        $options->attachmentsrequired = 1;
+        $options->filetypeslist = $formdata->filetypeslist;
         $options->graderinfo = $this->import_or_save_files($formdata->graderinfo,
                 $context, 'qtype_vmchecker', 'graderinfo', $formdata->id);
         $options->graderinfoformat = $formdata->graderinfo['format'];
-        $options->responsetemplate = $formdata->responsetemplate['text'];
-        $options->responsetemplateformat = $formdata->responsetemplate['format'];
+        $options->responsetemplate = '';
+        $options->responsetemplateformat = '';
+
         $DB->update_record('qtype_vmchecker_options', $options);
     }
 
@@ -100,66 +97,6 @@ class qtype_vmchecker extends question_type {
 
         $DB->delete_records('qtype_vmchecker_options', array('questionid' => $questionid));
         parent::delete_question($questionid, $contextid);
-    }
-
-    /**
-     * @return array the different response formats that the question type supports.
-     * internal name => human-readable name.
-     */
-    public function response_formats() {
-        return array(
-            'editor' => get_string('formateditor', 'qtype_vmchecker'),
-            'editorfilepicker' => get_string('formateditorfilepicker', 'qtype_vmchecker'),
-            'plain' => get_string('formatplain', 'qtype_vmchecker'),
-            'monospaced' => get_string('formatmonospaced', 'qtype_vmchecker'),
-            'noinline' => get_string('formatnoinline', 'qtype_vmchecker'),
-        );
-    }
-
-    /**
-     * @return array the choices that should be offerd when asking if a response is required
-     */
-    public function response_required_options() {
-        return array(
-            1 => get_string('responseisrequired', 'qtype_vmchecker'),
-            0 => get_string('responsenotrequired', 'qtype_vmchecker'),
-        );
-    }
-
-    /**
-     * @return array the choices that should be offered for the input box size.
-     */
-    public function response_sizes() {
-        $choices = array();
-        for ($lines = 5; $lines <= 40; $lines += 5) {
-            $choices[$lines] = get_string('nlines', 'qtype_vmchecker', $lines);
-        }
-        return $choices;
-    }
-
-    /**
-     * @return array the choices that should be offered for the number of attachments.
-     */
-    public function attachment_options() {
-        return array(
-            0 => get_string('no'),
-            1 => '1',
-            2 => '2',
-            3 => '3',
-            -1 => get_string('unlimited'),
-        );
-    }
-
-    /**
-     * @return array the choices that should be offered for the number of required attachments.
-     */
-    public function attachments_required_options() {
-        return array(
-            0 => get_string('attachmentsoptional', 'qtype_vmchecker'),
-            1 => '1',
-            2 => '2',
-            3 => '3'
-        );
     }
 
     public function move_files($questionid, $oldcontextid, $newcontextid) {

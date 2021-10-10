@@ -10,7 +10,7 @@ require_once($CFG->dirroot . '/question/type/questionbase.php');
  * @copyright  2009 The Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qtype_vmchecker_question extends question_graded_automatically {
+class qtype_vmchecker_question extends question_with_responses {
 
     public $responseformat;
 
@@ -28,29 +28,14 @@ class qtype_vmchecker_question extends question_graded_automatically {
     public $responsetemplate;
     public $responsetemplateformat;
 
-    private $score = 0;
-
     /** @var array The string array of file types accepted upon file submission. */
     public $filetypeslist;
 
+    public static $qa;
+
     public function make_behaviour(question_attempt $qa, $preferredbehaviour) {
-        return question_engine::make_behaviour('deferredfeedback', $qa, $preferredbehaviour);
-    }
-
-    public function grade_response(array $response) {
-        return array($this->score, question_state::graded_state_for_fraction($this->score));
-    }
-
-    public function get_validation_error(array $response) {
-        return 'Wrong';
-    }
-
-    /**
-     * @param moodle_page the page we are outputting to.
-     * @return qtype_vmchecker_format_renderer_base the response-format-specific renderer.
-     */
-    public function get_format_renderer(moodle_page $page) {
-        return $page->get_renderer('qtype_vmchecker', 'format_' . $this->responseformat);
+        qtype_vmchecker_question::$qa = $qa;
+        return question_engine::make_behaviour('manualgraded', $qa, $preferredbehaviour);
     }
 
     public function get_expected_data() {
@@ -69,12 +54,7 @@ class qtype_vmchecker_question extends question_graded_automatically {
     public function summarise_response(array $response) {
         $output = null;
 
-        if (isset($response['answer'])) {
-            $output .= question_utils::to_plain_text($response['answer'],
-                $response['answerformat'], array('para' => false));
-        }
-
-        if (isset($response['attachments'])  && $response['attachments']) {
+        if (isset($response['attachments']) && $response['attachments']) {
             $attachedfiles = [];
             foreach ($response['attachments']->get_files() as $file) {
                 $attachedfiles[] = $file->get_filename() . ' (' . display_size($file->get_filesize()) . ')';
@@ -99,8 +79,6 @@ class qtype_vmchecker_question extends question_graded_automatically {
     }
 
     public function is_complete_response(array $response) {
-        // Determine if the given response has online text and attachments.
-        $hasinlinetext = array_key_exists('answer', $response) && ($response['answer'] !== '');
         $hasattachments = array_key_exists('attachments', $response)
             && $response['attachments'] instanceof question_response_files;
 
@@ -110,81 +88,46 @@ class qtype_vmchecker_question extends question_graded_automatically {
             $filetypesutil = new \core_form\filetypes_util();
             $whitelist = $filetypesutil->normalize_file_types($this->filetypeslist);
             $wrongfiles = array();
+
             foreach ($response['attachments']->get_files() as $file) {
                 if (!$filetypesutil->is_allowed_file_type($file->get_filename(), $whitelist)) {
                     $wrongfiles[] = $file->get_filename();
                 }
             }
-            if ($wrongfiles) { // At least one filetype is wrong.
+
+            // At least one filetype is wrong.
+            if ($wrongfiles) {
                 return false;
             }
+
             $attachcount = count($response['attachments']->get_files());
         } else {
             $attachcount = 0;
         }
 
-        // Determine if we have /some/ content to be graded.
-        $hascontent = $hasinlinetext || ($attachcount > 0);
-
-        // Determine if we meet the optional requirements.
-        $meetsinlinereq = $hasinlinetext || (!$this->responserequired) || ($this->responseformat == 'noinline');
-        $meetsattachmentreq = ($attachcount >= $this->attachmentsrequired);
-
-        // The response is complete iff all of our requirements are met.
-        return $hascontent && $meetsinlinereq && $meetsattachmentreq;
+        $meetsattachmentreq = ($attachcount == $this->attachmentsrequired);
+        return $meetsattachmentreq;
     }
 
     public function is_gradable_response(array $response) {
-        // Determine if the given response has online text and attachments.
-        if (array_key_exists('answer', $response) && ($response['answer'] !== '')) {
-            return true;
-        } else if (array_key_exists('attachments', $response)
+        // Determine if the given response has attachments.
+
+        if (array_key_exists('attachments', $response)
                 && $response['attachments'] instanceof question_response_files) {
-            // TODO: DO stuff with response
+
             $student_archive = current($response['attachments']->get_files());
             $tmp_archive = $student_archive->copy_content_to_temp('files/' .  $student_archive->get_id());
-            $tmpdir = dirname($tmp_archive);
-            $repo = $tmpdir .'/repo';
-            mkdir($repo);
-            $res = shell_exec('git clone ssh://git@localhost:4444/acs/iocla/iocla-1.git ' . $repo);
-            $res = shell_exec('unzip -o ' . $tmp_archive . ' -d ' . $repo . '/skel 2>&1');
-            $res = shell_exec('whoami');
-            $branch_name =  'branch-' . $student_archive->get_id();
-            $res = shell_exec('cd ' . $repo . '; git checkout -b ' . $branch_name . '; git add .');
-            $res = shell_exec('cd ' . $repo . '; git config user.email "mail@mail.com"; git config user.name moodle; git commit -m wip 2>&1');
-            $res = shell_exec('cd ' . $repo . '; git push -u origin ' . $branch_name);
-            $ch = curl_init();
 
-            $project_id = '6';
-            curl_setopt($ch, CURLOPT_URL, 'http://localhost:5555/api/v4/projects/' . $project_id . '/pipelines?ref=' . $branch_name);
-            $headers = [
-                'PRIVATE-TOKEN: yRBZTJvP1f68Rx2Dbs_z',
-            ];
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            do {
-                sleep(5);
-                $res = curl_exec($ch);
-                $json = json_decode($res, true)[0];
-            } while($json['status'] == 'running');
-
-            curl_setopt($ch, CURLOPT_URL, 'http://localhost:5555/api/v4/projects/' . $project_id . '/pipelines/' . $json['id'] . '/jobs');
-            $res = curl_exec($ch);
-            $json = json_decode($res, true)[0];
-
-            curl_setopt($ch, CURLOPT_URL, 'http://localhost:5555/api/v4/projects/' . $project_id . '/jobs/' . $json['id'] . '/trace');
-            $res = curl_exec($ch);
-
-            $matches = array();
-            preg_match('/Total: ([0-9]+)/', $res , $matches);
-            $this->score = floatval($matches[1]) / 100;
-
-            curl_close($ch);
-
+            $task = new qtype_vmchecker\task\run_submission_task();
+            $task->set_custom_data(array(
+                'tmp_archive_path' => $tmp_archive,
+                'archive_id' => $student_archive->get_id()
+            ));
+            \core\task\manager::queue_adhoc_task($task, true);
             return true;
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     public function is_same_response(array $prevresponse, array $newresponse) {
@@ -207,10 +150,6 @@ class qtype_vmchecker_question extends question_graded_automatically {
         if ($component == 'question' && $filearea == 'response_attachments') {
             // Response attachments visible if the question has them.
             return $this->attachments != 0;
-
-        } else if ($component == 'question' && $filearea == 'response_answer') {
-            // Response attachments visible if the question has them.
-            return $this->responseformat === 'editorfilepicker';
 
         } else if ($component == 'qtype_vmchecker' && $filearea == 'graderinfo') {
             return $options->manualcomment && $args[0] == $this->id;
