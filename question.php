@@ -111,23 +111,24 @@ class qtype_vmchecker_question extends question_with_responses {
 
     public function is_gradable_response(array $response) {
         // Determine if the given response has attachments.
+        return array_key_exists('attachments', $response)
+            && $response['attachments'] instanceof question_response_files;
+    }
 
-        if (array_key_exists('attachments', $response)
-                && $response['attachments'] instanceof question_response_files) {
+    public function grade_question(array $response, question_attempt $qa) {
+        // TODO: manualgraded behaviour has been modified -> check if you cand get usage id some other way
+        $student_archive = current($response['attachments']->get_files());
+        $tmp_archive = $student_archive->copy_content_to_temp('files/' .  $student_archive->get_id());
 
-            $student_archive = current($response['attachments']->get_files());
-            $tmp_archive = $student_archive->copy_content_to_temp('files/' .  $student_archive->get_id());
+        $task = new qtype_vmchecker\task\run_submission_task();
+        $task->set_custom_data(array(
+            'tmp_archive_path' => $tmp_archive,
+            'archive_id' => $student_archive->get_id(),
+            'usage_id' => $qa->get_usage_id()
+        ));
 
-            $task = new qtype_vmchecker\task\run_submission_task();
-            $task->set_custom_data(array(
-                'tmp_archive_path' => $tmp_archive,
-                'archive_id' => $student_archive->get_id()
-            ));
-            \core\task\manager::queue_adhoc_task($task, true);
-            return true;
-        }
 
-        return false;
+        \core\task\manager::queue_adhoc_task($task, true);
     }
 
     public function is_same_response(array $prevresponse, array $newresponse) {
