@@ -28,6 +28,8 @@ class qtype_vmchecker_question extends question_graded_automatically {
     public $responsetemplate;
     public $responsetemplateformat;
 
+    private $score = 0;
+
     /** @var array The string array of file types accepted upon file submission. */
     public $filetypeslist;
 
@@ -36,7 +38,11 @@ class qtype_vmchecker_question extends question_graded_automatically {
     }
 
     public function grade_response(array $response) {
-        return array(1, question_state::$gradedright);
+        return array($this->score, question_state::graded_state_for_fraction($this->score));
+    }
+
+    public function get_validation_error(array $response) {
+        return 'Wrong';
     }
 
     /**
@@ -142,8 +148,11 @@ class qtype_vmchecker_question extends question_graded_automatically {
             mkdir($repo);
             $res = shell_exec('git clone ssh://git@localhost:4444/acs/iocla/iocla-1.git ' . $repo);
             $res = shell_exec('unzip -o ' . $tmp_archive . ' -d ' . $repo . '/skel 2>&1');
+            $res = shell_exec('whoami');
             $branch_name =  'branch-' . $student_archive->get_id();
-            $res = shell_exec('cd ' . $repo . '; git checkout -b ' . $branch_name . '; git add .; git commit -m wip; git push origin ' . $branch_name);
+            $res = shell_exec('cd ' . $repo . '; git checkout -b ' . $branch_name . '; git add .');
+            $res = shell_exec('cd ' . $repo . '; git config user.email "mail@mail.com"; git config user.name moodle; git commit -m wip 2>&1');
+            $res = shell_exec('cd ' . $repo . '; git push -u origin ' . $branch_name);
             $ch = curl_init();
 
             $project_id = '6';
@@ -168,7 +177,7 @@ class qtype_vmchecker_question extends question_graded_automatically {
 
             $matches = array();
             preg_match('/Total: ([0-9]+)/', $res , $matches);
-            $score = intval($matches[1]);
+            $this->score = floatval($matches[1]) / 100;
 
             curl_close($ch);
 
