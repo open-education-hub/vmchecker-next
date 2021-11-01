@@ -1,10 +1,4 @@
 <?php
-
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->component = 'qtype_vmchecker';
-$plugin->version   = 2020091500;
-
-$plugin->requires  = 2020060900;
-
-$plugin->maturity  = MATURITY_ALPHA;
+$plugin->component = 'block_vmchecker';
+$plugin->version = 2021102722;  // YYYYMMDDHH (year, month, day, 24-hr time)
+$plugin->requires = 2010112400; // YYYYMMDDHH (This is the release version for Moodle 2.0)

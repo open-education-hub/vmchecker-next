@@ -1,0 +1,34 @@
+<?php
+
+class block_vmchecker_edit_form extends block_edit_form {
+
+    protected function specific_definition($mform) {
+        $mform->addElement('header', 'config_vmchecker_header', get_string('header', 'block_vmchecker'));
+        $mform->setExpanded('config_vmchecker_header');
+
+        $mform->addElement('text', 'config_gitlab_url', get_string('gitlab_url', 'block_vmchecker'));
+        $mform->addRule('config_gitlab_url', null, 'required', null, 'client');
+        $mform->settype('config_gitlab_url', PARAM_TEXT);
+
+        $mform->addElement('text', 'config_gitlab_project_id', get_string('gitlab_project_id', 'block_vmchecker'));
+        $mform->addRule('config_gitlab_project_id', null, 'required', null, 'client');
+        $mform->settype('config_gitlab_project_id', PARAM_INT);
+
+        $mform->addElement('text', 'config_gitlab_private_token', get_string('gitlab_private_token', 'block_vmchecker'));
+        $mform->addRule('config_gitlab_private_token', null, 'required', null, 'client');
+        $mform->settype('config_gitlab_private_token', PARAM_TEXT);
+
+        $course_activities = get_array_of_activities($this->page->course->id);
+        $assignments = array();
+        foreach ($course_activities as $activity) {
+            if ($activity->mod != "assign")
+                continue;
+
+            $assignments[$activity->id] = $activity->name;
+        }
+
+        $mform->addElement('select', 'config_assignment', get_string('assignment', 'block_vmchecker'), $assignments);
+        $mform->addRule('config_assignment', null, 'required', null, 'client');
+        $mform->settype('config_assignment', PARAM_TEXT);
+    }
+}
