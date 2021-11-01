@@ -2,17 +2,29 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-/**
- * vmchecker question type editing form.
- *
- * @copyright  2007 Jamie Pratt me@jamiep.org
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
 class qtype_vmchecker_edit_form extends question_edit_form {
 
     protected function definition_inner($mform) {
-        // TODO: use it later for out own options
+        // TODO: use it later for our own options
         // $qtype = question_bank::get_qtype('vmchecker');
+
+        // NOTE: Moodle's public ssh key must be added to the repo
+
+        $mform->addElement('header', 'vmcheckeroptions', get_string('vmcheckeroptions', 'qtype_vmchecker'));
+        $mform->setExpanded('vmcheckeroptions');
+        $mform->settype('vmcheckeroptions', PARAM_TEXT);
+
+        $mform->addElement('text', 'gitlaburl', get_string('gitlaburl', 'qtype_vmchecker'));
+        $mform->addRule('gitlaburl', null, 'required', null, 'client');
+        $mform->settype('gitlaburl', PARAM_TEXT);
+
+        $mform->addElement('text', 'gitlabprojectid', get_string('gitlabprojectid', 'qtype_vmchecker'));
+        $mform->addRule('gitlabprojectid', null, 'required', null, 'client');
+        $mform->settype('gitlabprojectid', PARAM_INT);
+
+        $mform->addElement('text', 'gitlabprivaterepotoken', get_string('gitlabprivaterepotoken', 'qtype_vmchecker'));
+        $mform->addRule('gitlabprivaterepotoken', null, 'required', null, 'client');
+        $mform->settype('gitlabprivaterepotoken', PARAM_TEXT);
 
         $mform->addElement('header', 'responseoptions', get_string('responseoptions', 'qtype_vmchecker'));
         $mform->setExpanded('responseoptions');

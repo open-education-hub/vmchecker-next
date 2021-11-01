@@ -4,12 +4,6 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/question/type/questionbase.php');
 
-/**
- * Represents a vmchecker question.
- *
- * @copyright  2009 The Open University
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
 class qtype_vmchecker_question extends question_with_responses {
 
     public $responseformat;
@@ -31,10 +25,7 @@ class qtype_vmchecker_question extends question_with_responses {
     /** @var array The string array of file types accepted upon file submission. */
     public $filetypeslist;
 
-    public static $qa;
-
     public function make_behaviour(question_attempt $qa, $preferredbehaviour) {
-        qtype_vmchecker_question::$qa = $qa;
         return question_engine::make_behaviour('manualgraded', $qa, $preferredbehaviour);
     }
 

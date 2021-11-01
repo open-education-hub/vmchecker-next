@@ -1,22 +1,9 @@
 <?php
-/**
- * Privacy Subsystem implementation for qtype_vmchecker.
- *
- * @package    qtype_vmchecker
- * @copyright  2018 Andrew Nicols <andrew@nicols.co.uk>
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
 
 namespace qtype_vmchecker\privacy;
 
 defined('MOODLE_INTERNAL') || die();
 
-/**
- * Privacy Subsystem for qtype_vmchecker implementing null_provider.
- *
- * @copyright  2018 Andrew Nicols <andrew@nicols.co.uk>
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
 class provider implements \core_privacy\local\metadata\null_provider {
 
     /**

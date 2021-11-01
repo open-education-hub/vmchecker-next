@@ -1,13 +1,5 @@
 <?php
 
-/**
- * This file defines an adhoc task to run submissions
- *
- * @package    qtype_vmchecker
- * @copyright  2018 Andrew Nicols <andrew@nicols.co.uk>
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
 namespace qtype_vmchecker\task;
 
 defined('MOODLE_INTERNAL') || die();
@@ -32,7 +24,7 @@ class run_submission_task extends \core\task\adhoc_task {
 
         $branch_name = 'branch-' . $data['archive_id'];
         $res = shell_exec('cd ' . $repo . '; git checkout -b ' . $branch_name . '; git add .');
-        $res = shell_exec('cd ' . $repo . '; git config user.email "mail@mail.com"; git config user.name moodle; git commit -m wip 2>&1');
+        $res = shell_exec('cd ' . $repo . '; git config user.email "moodle@mail.com"; git config user.name moodle; git commit -m wip 2>&1');
         $res = shell_exec('cd ' . $repo . '; git push -u origin ' . $branch_name);
 
         $ch = curl_init();
