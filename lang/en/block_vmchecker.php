@@ -8,3 +8,4 @@ $string['gitlab_url'] = 'Gitlab repository URL';
 $string['gitlab_project_id'] = 'Gitlab repository ID';
 $string['gitlab_private_token'] = 'Gitlab private token';
 $string['assignment'] = 'Assignment';
+$string['submission_checker'] = 'Submission checker';

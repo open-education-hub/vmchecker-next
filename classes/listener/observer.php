@@ -6,7 +6,7 @@ defined('MOODLE_INTERNAL') || die();
 
 class observer {
     public static function submit(\core\event\base $event) {
-        global $DB;
+        global $DB, $USER;
 
         $data = $event->get_data();
         $submission = $DB->get_record($data['objecttable'],
@@ -39,6 +39,30 @@ class observer {
             }
         }
 
-        // TODO do stuff with service and etc
+        $payload = json_encode(array(
+            'gitlab_url' => $config->gitlab_url,
+            'gitlab_private_token' => $config->gitlab_private_token,
+            'gitlab_project_id' => $config->gitlab_project_id,
+            'username' => $USER->username,
+            'archive' => base64_encode($submited_file->get_content()),
+        ));
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'http://localhost:5000/v1/submit');
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $response = curl_exec($ch);
+
+        curl_close($ch);
+
+        $DB->insert_record('block_vmchecker_submissions',
+            array(
+                'userid' => $USER->id,
+                'assignid' => $submission->assignment,
+                'uuid' => json_decode($response, true)['UUID'],
+        ));
     }
 }

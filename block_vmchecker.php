@@ -34,7 +34,6 @@ class block_vmchecker extends block_base {
         $DB->insert_record('block_vmchecker_options',
             array(
                 'blockinstanceid' => $this->instance->id,
-                'courseid' => $this->page->course->id,
                 'assignid' => -1,
         ));
 
