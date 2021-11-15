@@ -2,11 +2,10 @@
 
 namespace block_vmchecker\task;
 
-use assign;
-
 defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__.'/../../../../config.php');
+require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
 class submission_checker extends \core\task\scheduled_task {
     public function get_name() {
@@ -56,7 +55,7 @@ class submission_checker extends \core\task\scheduled_task {
             $cm = get_coursemodule_from_instance('assign', $submission->assignid, 0, false, MUST_EXIST);
             $context = \context_module::instance($cm->id);
 
-            $assign = new assign($context, null, null);
+            $assign = new \assign($context, null, null);
 
             $matches = array();
             preg_match('/Total: ([0-9]+)/', $trace , $matches);
@@ -68,7 +67,9 @@ class submission_checker extends \core\task\scheduled_task {
             $data->assignfeedbackcomments_editor = ['text' => $teachercommenttext, 'format' => FORMAT_MOODLE];
 
             // Give the submission a grade.
-            $assign->save_grade($submission->id, $data);
+            $assign->save_grade($submission->userid, $data);
+
+            $DB->delete_records('block_vmchecker_submissions', array('id' => $submission->id));
         }
 
         curl_close($ch);

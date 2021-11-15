@@ -9,13 +9,26 @@ class block_vmchecker extends block_base {
     }
 
     public function get_content() {
+        global $DB;
+
         if ($this->content !== null) {
           return $this->content;
         }
 
+        $course_activities = get_array_of_activities($this->page->course->id);
+        foreach ($course_activities as $activity) {
+            if ($activity->mod != "assign" || $activity->id != $this->config->assignment)
+                continue;
+
+            $this->title = get_string('vmchecker', 'block_vmchecker') . ' - ' . $activity->name;
+            break;
+        }
+
         $this->content         =  new stdClass;
-        $this->content->text   = 'The content of our VMChecker block!';
-        $this->content->footer = 'Footer here...';
+        $this->content->text   = 'In queue: ' .
+            $DB->count_records('block_vmchecker_submissions',
+                array('assignid' => $this->config->assignment)
+            );
 
         return $this->content;
     }
