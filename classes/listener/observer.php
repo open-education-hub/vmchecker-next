@@ -48,7 +48,7 @@ class observer {
         ));
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'http://localhost:5000/v1/submit');
+        curl_setopt($ch, CURLOPT_URL, 'http://localhost:8000/api/v1/submit');
         curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
         curl_setopt($ch, CURLOPT_POST, true);

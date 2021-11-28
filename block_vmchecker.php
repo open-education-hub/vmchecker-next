@@ -2,6 +2,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+// WTF!?!? - auto descover?
+require_once(__DIR__ . '/classes/form/ta_form.php');
+
 class block_vmchecker extends block_base {
 
     public function init() {
@@ -29,6 +32,21 @@ class block_vmchecker extends block_base {
             $DB->count_records('block_vmchecker_submissions',
                 array('assignid' => $this->config->assignment)
             );
+
+        $mform = new block_vmchecker\form\ta_form();
+
+        //Form processing and displaying is done here
+        if ($mform->is_cancelled()) {
+            //Handle form cancel operation, if cancel button is present on form
+        } else if ($fromform = $mform->get_data()) {
+            //In this case you process validated data. $mform->get_data() returns data posted in form.
+        } else {
+            // this branch is executed if the form is submitted but the data doesn't validate and the form should be redisplayed
+            // or on the first display of the form.
+
+            //displays the form
+            $this->content->text .= '<br><br>' . $mform->render();
+        }
 
         return $this->content;
     }
