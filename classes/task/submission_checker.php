@@ -46,7 +46,7 @@ class submission_checker extends \core\task\scheduled_task {
             if ($response['status'] != 'done')
                 continue;
 
-            curl_setopt($ch, CURLOPT_URL, 'http://localhost:5000/api/v1/' . $submission->uuid . '/trace');
+            curl_setopt($ch, CURLOPT_URL, 'http://localhost:8000/api/v1/' . $submission->uuid . '/trace');
 
             $response = json_decode(curl_exec($ch), true);
             $trace = $this->clean_trace(base64_decode($response['trace']));
@@ -58,7 +58,7 @@ class submission_checker extends \core\task\scheduled_task {
             $assign = new \assign($context, null, null);
 
             $matches = array();
-            preg_match('/Total: ([0-9]+)/', $trace , $matches);
+            preg_match('/Total:\ *([0-9]+)/', $trace , $matches);
             $grade = $matches[1];
             $teachercommenttext = $trace;
             $data = new \stdClass();
