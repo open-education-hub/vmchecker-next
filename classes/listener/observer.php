@@ -6,7 +6,7 @@ defined('MOODLE_INTERNAL') || die();
 
 class observer {
     public static function submit(\core\event\base $event) {
-        global $DB, $USER;
+        global $DB, $USER, $CFG;
 
         $data = $event->get_data();
         $submission = $DB->get_record($data['objecttable'],
@@ -48,7 +48,7 @@ class observer {
         ));
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'http://localhost:8000/api/v1/submit');
+        curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . 'submit');
         curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
         curl_setopt($ch, CURLOPT_POST, true);

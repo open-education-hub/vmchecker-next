@@ -21,7 +21,7 @@ class submission_checker extends \core\task\scheduled_task {
     }
 
     public function execute() {
-        global $DB;
+        global $DB, $CFG;
 
         $this->log('Starting VMChecker task');
 
@@ -39,14 +39,14 @@ class submission_checker extends \core\task\scheduled_task {
         foreach($active_submissions as $submission) {
             $this->log('Checking task ' . $submission->id);
 
-            curl_setopt($ch, CURLOPT_URL, 'http://localhost:8000/api/v1/' . $submission->uuid . '/status');
+            curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . $submission->uuid . '/status');
 
             $response = json_decode(curl_exec($ch), true);
             $this->log('Task status is ' . $response['status']);
             if ($response['status'] != 'done')
                 continue;
 
-            curl_setopt($ch, CURLOPT_URL, 'http://localhost:8000/api/v1/' . $submission->uuid . '/trace');
+            curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . $submission->uuid . '/trace');
 
             $response = json_decode(curl_exec($ch), true);
             $trace = $this->clean_trace(base64_decode($response['trace']));

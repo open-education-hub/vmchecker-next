@@ -11,8 +11,12 @@ class block_vmchecker extends block_base {
         $this->title = get_string('vmchecker', 'block_vmchecker');
     }
 
+    public function has_config() {
+        return true;
+    }
+
     public function get_content() {
-        global $DB;
+        global $DB, $CFG;
 
         if ($this->content !== null) {
           return $this->content;
@@ -27,11 +31,19 @@ class block_vmchecker extends block_base {
             break;
         }
 
+        $api = new \block_vmchecker\backend\api($CFG->block_vmchecker_backend);
+        $tasks_new = $api->info(array(
+            'status' => 'new',
+            'gitlab_project_id' => $this->config->gitlab_project_id,
+        ));
+        $tasks_wfr = $api->info(array(
+            'status' => 'waiting_for_results',
+            'gitlab_project_id' => $this->config->gitlab_project_id,
+        ));
+
         $this->content         =  new stdClass;
-        $this->content->text   = 'In queue: ' .
-            $DB->count_records('block_vmchecker_submissions',
-                array('assignid' => $this->config->assignment)
-            );
+        $this->content->text   = 'New: ' . count($tasks_new) . '<br>';
+        $this->content->text  .= 'Waiting for results: ' . count($tasks_wfr);
 
         $mform = new block_vmchecker\form\ta_form();
 
