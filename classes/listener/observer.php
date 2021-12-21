@@ -40,7 +40,6 @@ class observer {
         }
 
         $payload = json_encode(array(
-            'gitlab_url' => $config->gitlab_url,
             'gitlab_private_token' => $config->gitlab_private_token,
             'gitlab_project_id' => $config->gitlab_project_id,
             'username' => $USER->username,

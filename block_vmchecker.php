@@ -16,7 +16,7 @@ class block_vmchecker extends block_base {
     }
 
     public function get_content() {
-        global $DB, $CFG;
+        global $DB, $CFG, $FULLME;
 
         if ($this->content !== null) {
           return $this->content;
@@ -45,20 +45,17 @@ class block_vmchecker extends block_base {
         $this->content->text   = 'New: ' . count($tasks_new) . '<br>';
         $this->content->text  .= 'Waiting for results: ' . count($tasks_wfr);
 
-        $mform = new block_vmchecker\form\ta_form();
+        $mform = new block_vmchecker\form\ta_form($FULLME);
 
-        //Form processing and displaying is done here
-        if ($mform->is_cancelled()) {
-            //Handle form cancel operation, if cancel button is present on form
-        } else if ($fromform = $mform->get_data()) {
-            //In this case you process validated data. $mform->get_data() returns data posted in form.
-        } else {
-            // this branch is executed if the form is submitted but the data doesn't validate and the form should be redisplayed
-            // or on the first display of the form.
-
-            //displays the form
-            $this->content->text .= '<br><br>' . $mform->render();
+        if ($fromform = $mform->get_data()) {
+            $task = new block_vmchecker\task\recheck_task();
+            $task->set_custom_data(array(
+                'assignid' => $this->config->assignment,
+                'config' => $this->config,
+            ));
+            \core\task\manager::queue_adhoc_task($task, true);
         }
+        $this->content->text .= '<br><br>' . $mform->render();
 
         return $this->content;
     }

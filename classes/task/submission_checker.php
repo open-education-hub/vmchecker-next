@@ -4,7 +4,7 @@ namespace block_vmchecker\task;
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once(__DIR__.'/../../../../config.php');
+require_once(__DIR__ . '/../../../../config.php');
 require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
 class submission_checker extends \core\task\scheduled_task {

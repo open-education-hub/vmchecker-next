@@ -6,10 +6,6 @@ class block_vmchecker_edit_form extends block_edit_form {
         $mform->addElement('header', 'config_vmchecker_header', get_string('header', 'block_vmchecker'));
         $mform->setExpanded('config_vmchecker_header');
 
-        $mform->addElement('text', 'config_gitlab_url', get_string('gitlab_url', 'block_vmchecker'));
-        $mform->addRule('config_gitlab_url', null, 'required', null, 'client');
-        $mform->settype('config_gitlab_url', PARAM_TEXT);
-
         $mform->addElement('text', 'config_gitlab_project_id', get_string('gitlab_project_id', 'block_vmchecker'));
         $mform->addRule('config_gitlab_project_id', null, 'required', null, 'client');
         $mform->settype('config_gitlab_project_id', PARAM_INT);
