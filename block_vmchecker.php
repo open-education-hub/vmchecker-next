@@ -19,7 +19,11 @@ class block_vmchecker extends block_base {
         global $DB, $CFG, $FULLME;
 
         if ($this->content !== null) {
-          return $this->content;
+            return $this->content;
+        }
+
+        if ($this->config->assignment == null) {
+            return 'No assignment';
         }
 
         $course_activities = get_array_of_activities($this->page->course->id);
