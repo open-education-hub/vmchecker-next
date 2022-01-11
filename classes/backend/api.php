@@ -9,7 +9,6 @@ class api {
 
     public function __construct(string $apiURL) {
         $this->apiURL = $apiURL;
-
     }
 
     public function info(array $query_params) {

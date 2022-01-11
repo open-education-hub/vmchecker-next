@@ -25,7 +25,7 @@ class recheck_task extends \core\task\adhoc_task {
 
         foreach ($participants as $user) {
             $submission = $assign->get_user_submission($user->id, false);
-            if ($submission == null)
+            if ($submission == null || $submission->status != "submitted")
                 continue;
 
             $fs = get_file_storage();

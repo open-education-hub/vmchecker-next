@@ -4,6 +4,7 @@ defined('MOODLE_INTERNAL') || die();
 
 // WTF!?!? - auto descover?
 require_once(__DIR__ . '/classes/form/ta_form.php');
+require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
 class block_vmchecker extends block_base {
 
@@ -49,7 +50,21 @@ class block_vmchecker extends block_base {
         $this->content->text   = 'New: ' . count($tasks_new) . '<br>';
         $this->content->text  .= 'Waiting for results: ' . count($tasks_wfr);
 
-        $mform = new block_vmchecker\form\ta_form($FULLME);
+        $cm = get_coursemodule_from_instance('assign', $this->config->assignment, 0, false, MUST_EXIST);
+        $context = \context_module::instance($cm->id);
+
+        $assign = new \assign($context, null, null);
+        $participants = $assign->list_participants(0, false, false);
+        $filtered_participants = array();
+        foreach ($participants as $user) {
+            $submission = $assign->get_user_submission($user->id, false);
+            if ($submission == null || $submission->status != "submitted")
+                continue;
+
+            array_push($filtered_participants, $user);
+        }
+
+        $mform = new block_vmchecker\form\ta_form($FULLME, $filtered_participants);
 
         if ($fromform = $mform->get_data()) {
             $task = new block_vmchecker\task\recheck_task();
