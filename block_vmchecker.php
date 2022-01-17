@@ -71,6 +71,7 @@ class block_vmchecker extends block_base {
             $task->set_custom_data(array(
                 'assignid' => $this->config->assignment,
                 'config' => $this->config,
+                'users' => $fromform->user,
             ));
             \core\task\manager::queue_adhoc_task($task, true);
         }

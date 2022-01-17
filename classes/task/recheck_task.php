@@ -19,12 +19,10 @@ class recheck_task extends \core\task\adhoc_task {
 
         $cm = get_coursemodule_from_instance('assign', $data->assignid, 0, false, MUST_EXIST);
         $context = \context_module::instance($cm->id);
-
         $assign = new \assign($context, null, null);
-        $participants = $assign->list_participants(0, false, false);
 
-        foreach ($participants as $user) {
-            $submission = $assign->get_user_submission($user->id, false);
+        foreach ($data->users as $user) {
+            $submission = $assign->get_user_submission($user, false);
             if ($submission == null || $submission->status != "submitted")
                 continue;
 
