@@ -14,8 +14,34 @@ class ta_form extends moodleform {
         $mform = $this->_form;
 
         $mform->addElement('select', 'action', 'Action', array('Recheck submissions for ...', 'MOSS check for ...'), null);
-        $usersSelect = $mform->addElement('select', 'user', 'User ID', $this->getParticipants(), null);
+        $mform->addElement('text', 'search', 'Search', array('size'=>'20', 'id'=>'ceva'));
+        $mform->setType('search', PARAM_RAW);
+        $usersSelect = $mform->addElement('select', 'user', 'User ID', $this->getParticipants(), array('id'=>'ceva2'));
         $usersSelect->setMultiple(true);
+        $mform->addElement('html', '
+        <script>
+            let timeout;
+            document.getElementById("ceva").addEventListener("input", (e) => {
+                if (timeout)
+                    clearTimeout(timeout);
+
+                timeout = setTimeout(() => filterList(e.target.value), 300);
+            });
+
+            function filterList(text) {
+                if (!text)
+                    text = "";
+
+                const list = document.getElementById("ceva2");
+
+                for (const option of list.children)
+                    if (!option.innerText.includes(text))
+                        option.style.display = "none";
+                    else
+                        option.style.display = null;
+            }
+        </script>
+        ');
 
         $this->add_action_buttons(false, 'Run action');
     }
