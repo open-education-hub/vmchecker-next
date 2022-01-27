@@ -21,8 +21,8 @@ class recheck_task extends \core\task\adhoc_task {
         $context = \context_module::instance($cm->id);
         $assign = new \assign($context, null, null);
 
-        foreach ($data->users as $user) {
-            $submission = $assign->get_user_submission($user, false);
+        foreach ($data->users as $user_id) {
+            $submission = $assign->get_user_submission($user_id, false);
             if ($submission == null || $submission->status != "submitted")
                 continue;
 
@@ -39,7 +39,7 @@ class recheck_task extends \core\task\adhoc_task {
             $payload = json_encode(array(
                 'gitlab_private_token' => $data->config->gitlab_private_token,
                 'gitlab_project_id' => $data->config->gitlab_project_id,
-                'username' => $user->username,
+                'username' => $DB->get_record('user', array('id' => $user_id), 'username')->username,
                 'archive' => base64_encode($submited_file->get_content()),
             ));
 
@@ -56,7 +56,7 @@ class recheck_task extends \core\task\adhoc_task {
 
             $DB->insert_record('block_vmchecker_submissions',
                 array(
-                    'userid' => $user->id,
+                    'userid' => $user_id,
                     'assignid' => $submission->assignment,
                     'uuid' => json_decode($response, true)['UUID'],
             ));

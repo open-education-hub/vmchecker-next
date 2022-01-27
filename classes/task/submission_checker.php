@@ -12,7 +12,20 @@ class submission_checker extends \core\task\scheduled_task {
         return get_string('submission_checker', 'block_vmchecker');
     }
 
+    private function strip_lines(string $text, int $line_count) {
+        for ($i = 0; $i < $line_count; $i++)
+            $text = substr($text, strpos($text, '\n') + 1);
+
+        return $text;
+    }
+
     private function clean_trace(string $trace) {
+        $trace = $this->strip_lines($trace, 20);
+
+        $matches = array();
+        preg_match('/Total:\ *([0-9]+)/', $trace , $matches, PREG_OFFSET_CAPTURE);
+        $trace = substr($trace, 0, $matches[1][1] + strlen($matches[1][0]));  // Remove everything after score declaration
+
         return $trace;
     }
 

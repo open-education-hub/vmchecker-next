@@ -16,6 +16,17 @@ class block_vmchecker extends block_base {
         return true;
     }
 
+    private function set_title() {
+        $course_activities = get_array_of_activities($this->page->course->id);
+        foreach ($course_activities as $activity) {
+            if ($activity->mod != "assign" || $activity->id != $this->config->assignment)
+            continue;
+
+            $this->title = get_string('vmchecker', 'block_vmchecker') . ' - ' . $activity->name;
+            break;
+        }
+    }
+
     public function get_content() {
         global $DB, $CFG, $FULLME;
 
@@ -23,20 +34,21 @@ class block_vmchecker extends block_base {
             return $this->content;
         }
 
+        $this->content =  new stdClass;
+
         if ($this->config->assignment == null) {
-            return 'No assignment';
+            $this->content->text = 'No assignment selected';
+            return $this->content;
         }
 
-        $course_activities = get_array_of_activities($this->page->course->id);
-        foreach ($course_activities as $activity) {
-            if ($activity->mod != "assign" || $activity->id != $this->config->assignment)
-                continue;
-
-            $this->title = get_string('vmchecker', 'block_vmchecker') . ' - ' . $activity->name;
-            break;
-        }
-
+        $this->set_title();
         $api = new \block_vmchecker\backend\api($CFG->block_vmchecker_backend);
+
+        if (!$api->healthcheck()) {
+            $this->content->text = 'VMChecker backend at "' . $CFG->block_vmchecker_backend . '" is offline.';
+            return $this->content;
+        }
+
         $tasks_new = $api->info(array(
             'status' => 'new',
             'gitlab_project_id' => $this->config->gitlab_project_id,
@@ -46,9 +58,8 @@ class block_vmchecker extends block_base {
             'gitlab_project_id' => $this->config->gitlab_project_id,
         ));
 
-        $this->content         =  new stdClass;
-        $this->content->text   = 'New: ' . count($tasks_new) . '<br>';
-        $this->content->text  .= 'Waiting for results: ' . count($tasks_wfr);
+        $this->content->text = 'New: ' . count($tasks_new) . '<br>';
+        $this->content->text .= 'Waiting for results: ' . count($tasks_wfr);
 
         $cm = get_coursemodule_from_instance('assign', $this->config->assignment, 0, false, MUST_EXIST);
         $context = \context_module::instance($cm->id);
