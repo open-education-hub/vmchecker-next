@@ -12,15 +12,10 @@ class submission_checker extends \core\task\scheduled_task {
         return get_string('submission_checker', 'block_vmchecker');
     }
 
-    private function strip_lines(string $text, int $line_count) {
-        for ($i = 0; $i < $line_count; $i++)
-            $text = substr($text, strpos($text, '\n') + 1);
-
-        return $text;
-    }
-
     private function clean_trace(string $trace) {
-        $trace = $this->strip_lines($trace, 20);
+        $matches = array();
+        preg_match('/VMCHECKER_TRACE_CLEANUP\n/', $trace , $matches, PREG_OFFSET_CAPTURE);
+        $trace = substr($trace, $matches[0][1] + strlen($matches[0][0]));
 
         $matches = array();
         preg_match('/Total:\ *([0-9]+)/', $trace , $matches, PREG_OFFSET_CAPTURE);
@@ -75,7 +70,7 @@ class submission_checker extends \core\task\scheduled_task {
             $grade = $matches[1];
             $teachercommenttext = $trace;
             $data = new \stdClass();
-            $data->attemptnumber = 1;
+            $data->attemptnumber = 0;
             $data->grade = $grade;
             $data->assignfeedbackcomments_editor = ['text' => $teachercommenttext, 'format' => FORMAT_MOODLE];
 

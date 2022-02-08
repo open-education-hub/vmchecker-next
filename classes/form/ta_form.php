@@ -13,15 +13,17 @@ class ta_form extends moodleform {
     public function definition() {
         $mform = $this->_form;
 
-        $mform->addElement('select', 'action', 'Action', array('Recheck submissions for ...', 'MOSS check for ...'), null);
-        $mform->addElement('text', 'search', 'Search', array('size'=>'20', 'id'=>'ceva'));
+        $searchBoxID = uniqid();
+        $userListID = uniqid();
+
+        $mform->addElement('text', 'search', 'Search', array('size' => '20', 'id' => $searchBoxID));
         $mform->setType('search', PARAM_RAW);
-        $usersSelect = $mform->addElement('select', 'user', 'User ID', $this->getParticipants(), array('id'=>'ceva2'));
+        $usersSelect = $mform->addElement('select', 'user', 'User', $this->getParticipants(), array('style' => 'width: 100%','id' => $userListID));
         $usersSelect->setMultiple(true);
         $mform->addElement('html', '
         <script>
             let timeout;
-            document.getElementById("ceva").addEventListener("input", (e) => {
+            document.getElementById("' . $searchBoxID . '").addEventListener("input", (e) => {
                 if (timeout)
                     clearTimeout(timeout);
 
@@ -32,7 +34,7 @@ class ta_form extends moodleform {
                 if (!text)
                     text = "";
 
-                const list = document.getElementById("ceva2");
+                const list = document.getElementById("' . $userListID . '");
 
                 for (const option of list.children)
                     if (!option.innerText.includes(text))
@@ -42,12 +44,25 @@ class ta_form extends moodleform {
             }
         </script>
         ');
+        $mform->addElement(
+            'select',
+            'action',
+            'Action',
+            array(
+                'recheck' => 'Recheck submissions for ...',
+                'moss' => 'MOSS check for ...'
+            ),
+            null
+        );
+
+        $mform->addElement('hidden', 'assignid', $this->_customdata['assignid']);
+        $mform->setType('assignid', PARAM_RAW);
 
         $this->add_action_buttons(false, 'Run action');
     }
 
     function getParticipants() {
-        $participants = $this->_customdata;
+        $participants = $this->_customdata['participants'];
         $formatedData = array();
 
         foreach ($participants as $user) {

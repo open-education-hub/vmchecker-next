@@ -2,7 +2,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// WTF!?!? - auto descover?
 require_once(__DIR__ . '/classes/form/ta_form.php');
 require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
@@ -27,8 +26,26 @@ class block_vmchecker extends block_base {
         }
     }
 
+    private function process_form(block_vmchecker\form\ta_form $form) {
+        $fromform = $form->get_data();
+
+        if ($fromform === null)
+            return;
+
+        if ($fromform->assignid === $this->config->assignment)
+            return;
+
+        $task = new block_vmchecker\task\recheck_task();
+        $task->set_custom_data(array(
+            'assignid' => $this->config->assignment,
+            'config' => $this->config,
+            'users' => $fromform->user,
+        ));
+        \core\task\manager::queue_adhoc_task($task, true);
+    }
+
     public function get_content() {
-        global $DB, $CFG, $FULLME;
+        global $CFG, $FULLME;
 
         if ($this->content !== null) {
             return $this->content;
@@ -75,17 +92,13 @@ class block_vmchecker extends block_base {
             array_push($filtered_participants, $user);
         }
 
-        $mform = new block_vmchecker\form\ta_form($FULLME, $filtered_participants);
+        $form_custom_data = array(
+            'participants' => $filtered_participants,
+            'assignid' => $this->config->assignment,
+        );
+        $mform = new block_vmchecker\form\ta_form($FULLME, $form_custom_data);
+        $this->process_form($mform);
 
-        if ($fromform = $mform->get_data()) {
-            $task = new block_vmchecker\task\recheck_task();
-            $task->set_custom_data(array(
-                'assignid' => $this->config->assignment,
-                'config' => $this->config,
-                'users' => $fromform->user,
-            ));
-            \core\task\manager::queue_adhoc_task($task, true);
-        }
         $this->content->text .= '<br><br>' . $mform->render();
 
         return $this->content;
