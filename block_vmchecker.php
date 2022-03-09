@@ -26,22 +26,37 @@ class block_vmchecker extends block_base {
         }
     }
 
-    private function process_form(block_vmchecker\form\ta_form $form) {
+    private function process_form(block_vmchecker\form\ta_form $form, array $allUsers) {
         $fromform = $form->get_data();
 
         if ($fromform === null)
             return;
 
-        if ($fromform->assignid === $this->config->assignment)
+        if ($fromform->assignid !== $this->config->assignment)
             return;
 
-        $task = new block_vmchecker\task\recheck_task();
-        $task->set_custom_data(array(
-            'assignid' => $this->config->assignment,
-            'config' => $this->config,
-            'users' => $fromform->user,
-        ));
-        \core\task\manager::queue_adhoc_task($task, true);
+        switch ($fromform->action) {
+            case block_vmchecker\form\ta_form::ACTION_RECHECK:
+                $task = new block_vmchecker\task\recheck_task();
+                $task->set_custom_data(array(
+                    'assignid' => $this->config->assignment,
+                    'config' => $this->config,
+                    'users' => $fromform->user,
+                ));
+                \core\task\manager::queue_adhoc_task($task, true);
+                break;
+            case block_vmchecker\form\ta_form::ACTION_RECHECK_ALL:
+                $task = new block_vmchecker\task\recheck_task();
+                $task->set_custom_data(array(
+                    'assignid' => $this->config->assignment,
+                    'config' => $this->config,
+                    'users' => $allUsers,
+                ));
+                \core\task\manager::queue_adhoc_task($task, true);
+                break;
+            case block_vmchecker\form\ta_form::ACTION_MOSS:
+                break;
+        }
     }
 
     public function get_content() {
@@ -51,7 +66,7 @@ class block_vmchecker extends block_base {
             return $this->content;
         }
 
-        $this->content =  new stdClass;
+        $this->content = new stdClass;
 
         if ($this->config->assignment == null) {
             $this->content->text = 'No assignment selected';
@@ -84,12 +99,14 @@ class block_vmchecker extends block_base {
         $assign = new \assign($context, null, null);
         $participants = $assign->list_participants(0, false, false);
         $filtered_participants = array();
+        $allUsersID = array();
         foreach ($participants as $user) {
             $submission = $assign->get_user_submission($user->id, false);
             if ($submission == null || $submission->status != "submitted")
                 continue;
 
             array_push($filtered_participants, $user);
+            array_push($allUsersID, $user->id);
         }
 
         $form_custom_data = array(
@@ -97,7 +114,7 @@ class block_vmchecker extends block_base {
             'assignid' => $this->config->assignment,
         );
         $mform = new block_vmchecker\form\ta_form($FULLME, $form_custom_data);
-        $this->process_form($mform);
+        $this->process_form($mform, $allUsersID);
 
         $this->content->text .= '<br><br>' . $mform->render();
 
