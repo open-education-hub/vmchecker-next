@@ -59,6 +59,7 @@ class recheck_task extends \core\task\adhoc_task {
                     'userid' => $user_id,
                     'assignid' => $submission->assignment,
                     'uuid' => json_decode($response, true)['UUID'],
+                    'autograde' => $data->config->autograding,
             ));
         }
     }

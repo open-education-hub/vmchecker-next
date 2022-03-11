@@ -62,6 +62,7 @@ class observer {
                 'userid' => $USER->id,
                 'assignid' => $submission->assignment,
                 'uuid' => json_decode($response, true)['UUID'],
+                'autograde' => $config->autograding === '1',
         ));
     }
 }

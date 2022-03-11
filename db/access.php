@@ -1,5 +1,5 @@
 <?php
-    $capabilities = array(
+$capabilities = array(
 
     'block/vmchecker:myaddinstance' => array(
         'captype' => 'write',
@@ -22,5 +22,16 @@
         ),
 
         'clonepermissionsfrom' => 'moodle/site:manageblocks'
+    ),
+
+    'block/vmchecker:view' => array(
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_BLOCK,
+        'legacy' => array(
+            'editingteacher' => CAP_ALLOW,
+            'teacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+            'admin' => CAP_ALLOW
+        )
     ),
 );

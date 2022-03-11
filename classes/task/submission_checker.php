@@ -71,7 +71,10 @@ class submission_checker extends \core\task\scheduled_task {
             $teachercommenttext = $trace;
             $data = new \stdClass();
             $data->attemptnumber = 0;
-            $data->grade = $grade;
+            if ($submission->autograde)
+                $data->grade = $grade;
+            else
+                $data->grade = null;
             $data->assignfeedbackcomments_editor = ['text' => $teachercommenttext, 'format' => FORMAT_MOODLE];
 
             // Give the submission a grade.

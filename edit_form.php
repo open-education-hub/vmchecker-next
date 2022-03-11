@@ -6,6 +6,10 @@ class block_vmchecker_edit_form extends block_edit_form {
         $mform->addElement('header', 'config_vmchecker_header', get_string('header', 'block_vmchecker'));
         $mform->setExpanded('config_vmchecker_header');
 
+        $mform->addElement('select', 'config_autograding', get_string('autograding', 'block_vmchecker'), array(true => 'Yes', false => 'No'), null);
+        $mform->setDefault('config_autograding', true);
+        $mform->settype('config_autograding', PARAM_BOOL);
+
         $mform->addElement('text', 'config_gitlab_project_id', get_string('gitlab_project_id', 'block_vmchecker'));
         $mform->addRule('config_gitlab_project_id', null, 'required', null, 'client');
         $mform->settype('config_gitlab_project_id', PARAM_INT);
