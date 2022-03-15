@@ -12,6 +12,38 @@ class submission_checker extends \core\task\scheduled_task {
         return get_string('submission_checker', 'block_vmchecker');
     }
 
+    private function done_submission($ch, $submission) {
+        global $DB, $CFG;
+
+        curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . $submission->uuid . '/trace');
+
+        $response = json_decode(curl_exec($ch), true);
+        $trace = $this->clean_trace(base64_decode($response['trace']));
+        $this->log('Trace:\n' . $trace);
+
+        $cm = get_coursemodule_from_instance('assign', $submission->assignid, 0, false, MUST_EXIST);
+        $context = \context_module::instance($cm->id);
+
+        $assign = new \assign($context, null, null);
+
+        $matches = array();
+        preg_match('/Total:\ *([0-9]+)/', $trace , $matches);
+        $grade = $matches[1];
+        $teachercommenttext = $trace;
+        $data = new \stdClass();
+        $data->attemptnumber = 0;
+        if ($submission->autograde)
+            $data->grade = $grade;
+        else
+            $data->grade = null;
+        $data->assignfeedbackcomments_editor = ['text' => $teachercommenttext, 'format' => FORMAT_MOODLE];
+
+        // Give the submission a grade.
+        $assign->save_grade($submission->userid, $data);
+
+        $DB->delete_records('block_vmchecker_submissions', array('id' => $submission->id));
+    }
+
     private function clean_trace(string $trace) {
         $matches = array();
         preg_match('/VMCHECKER_TRACE_CLEANUP\n/', $trace , $matches, PREG_OFFSET_CAPTURE);
@@ -33,7 +65,7 @@ class submission_checker extends \core\task\scheduled_task {
 
         $this->log('Starting VMChecker task');
 
-        $active_submissions = $DB->get_records('block_vmchecker_submissions');
+        $active_submissions = $DB->get_records('block_vmchecker_submissions', null, 'updatedat ASC', '*', 0, $CFG->block_vmchecker_submission_check);
 
         if (!$active_submissions || count($active_submissions) == 0)
             return;
@@ -47,37 +79,24 @@ class submission_checker extends \core\task\scheduled_task {
         foreach($active_submissions as $submission) {
             $this->log('Checking task ' . $submission->id);
 
+            $submission->updatedat = time();
+            $DB->update_record('block_vmchecker_submissions', $submission);
+
             curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . $submission->uuid . '/status');
 
             $response = json_decode(curl_exec($ch), true);
             $this->log('Task status is ' . $response['status']);
-            if ($response['status'] != 'done')
-                continue;
 
-            curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . $submission->uuid . '/trace');
-
-            $response = json_decode(curl_exec($ch), true);
-            $trace = $this->clean_trace(base64_decode($response['trace']));
-            $this->log('Trace:\n' . $trace);
-
-            $cm = get_coursemodule_from_instance('assign', $submission->assignid, 0, false, MUST_EXIST);
-            $context = \context_module::instance($cm->id);
-
-            $assign = new \assign($context, null, null);
-
-            $matches = array();
-            preg_match('/Total:\ *([0-9]+)/', $trace , $matches);
-            $grade = $matches[1];
-            $teachercommenttext = $trace;
-            $data = new \stdClass();
-            $data->attemptnumber = 0;
-            $data->grade = $grade;
-            $data->assignfeedbackcomments_editor = ['text' => $teachercommenttext, 'format' => FORMAT_MOODLE];
-
-            // Give the submission a grade.
-            $assign->save_grade($submission->userid, $data);
-
-            $DB->delete_records('block_vmchecker_submissions', array('id' => $submission->id));
+            switch($response['status']) {
+                case 'done':
+                    $this->done_submission($ch, $submission);
+                    break;
+                case 'error':
+                    $DB->delete_records('block_vmchecker_submissions', array('id' => $submission->id));
+                    break;
+                default:
+                    continue 2;   
+            }
         }
 
         curl_close($ch);

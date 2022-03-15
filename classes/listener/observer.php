@@ -5,6 +5,33 @@ namespace block_vmchecker\listener;
 defined('MOODLE_INTERNAL') || die();
 
 class observer {
+    private static function stopPreviousAttemp($assignmentId) {
+        global $DB, $USER, $CFG;
+        
+        $previousAttempt = $DB->get_record('block_vmchecker_submissions',
+            array(
+                'userid' => $USER->id,
+                'assignid' => $assignmentId,
+        ));
+        if (!$previousAttempt)
+            return;
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . $previousAttempt->uuid . '/cancel');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        curl_exec($ch);
+
+        curl_close($ch);
+
+        $DB->delete_records('block_vmchecker_submissions',
+            array('id' => $previousAttempt->id)
+        );
+
+    }
+
     public static function submit(\core\event\base $event) {
         global $DB, $USER, $CFG;
 
@@ -23,6 +50,8 @@ class observer {
         if ($vmchecker_options == null)
             return;
 
+        \block_vmchecker\listener\observer::stopPreviousAttemp($submission->assignment);
+
         $config_data = $DB->get_record('block_instances',
             array(
                 'id' => $vmchecker_options->blockinstanceid
@@ -38,6 +67,9 @@ class observer {
                 break;
             }
         }
+
+        if (!$submited_file)
+            return;
 
         $payload = json_encode(array(
             'gitlab_private_token' => $config->gitlab_private_token,
@@ -62,6 +94,8 @@ class observer {
                 'userid' => $USER->id,
                 'assignid' => $submission->assignment,
                 'uuid' => json_decode($response, true)['UUID'],
+                'autograde' => $config->autograding === '1',
+                'updatedat' => time(),
         ));
     }
 }

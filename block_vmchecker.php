@@ -5,53 +5,78 @@ defined('MOODLE_INTERNAL') || die();
 require_once(__DIR__ . '/classes/form/ta_form.php');
 require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
-class block_vmchecker extends block_base {
+class block_vmchecker extends block_base
+{
 
-    public function init() {
+    public function init()
+    {
         $this->title = get_string('vmchecker', 'block_vmchecker');
     }
 
-    public function has_config() {
+    public function has_config()
+    {
         return true;
     }
 
-    private function set_title() {
+    private function set_title()
+    {
         $course_activities = get_array_of_activities($this->page->course->id);
         foreach ($course_activities as $activity) {
             if ($activity->mod != "assign" || $activity->id != $this->config->assignment)
-            continue;
+                continue;
 
             $this->title = get_string('vmchecker', 'block_vmchecker') . ' - ' . $activity->name;
             break;
         }
     }
 
-    private function process_form(block_vmchecker\form\ta_form $form) {
+    private function process_form(block_vmchecker\form\ta_form $form, array $allUsers)
+    {
         $fromform = $form->get_data();
 
         if ($fromform === null)
             return;
 
-        if ($fromform->assignid === $this->config->assignment)
+        if ($fromform->assignid !== $this->config->assignment)
             return;
 
-        $task = new block_vmchecker\task\recheck_task();
-        $task->set_custom_data(array(
-            'assignid' => $this->config->assignment,
-            'config' => $this->config,
-            'users' => $fromform->user,
-        ));
-        \core\task\manager::queue_adhoc_task($task, true);
+        switch ($fromform->action) {
+            case block_vmchecker\form\ta_form::ACTION_RECHECK:
+                $task = new block_vmchecker\task\recheck_task();
+                $task->set_custom_data(array(
+                    'assignid' => $this->config->assignment,
+                    'config' => $this->config,
+                    'users' => $fromform->user,
+                ));
+                \core\task\manager::queue_adhoc_task($task, true);
+                break;
+            case block_vmchecker\form\ta_form::ACTION_RECHECK_ALL:
+                $task = new block_vmchecker\task\recheck_task();
+                $task->set_custom_data(array(
+                    'assignid' => $this->config->assignment,
+                    'config' => $this->config,
+                    'users' => $allUsers,
+                ));
+                \core\task\manager::queue_adhoc_task($task, true);
+                break;
+            case block_vmchecker\form\ta_form::ACTION_MOSS:
+                break;
+        }
     }
 
-    public function get_content() {
+    public function get_content()
+    {
         global $CFG, $FULLME;
+
+        if (!has_capability('block/vmchecker:view', $this->context)) {
+            return null;
+        }
 
         if ($this->content !== null) {
             return $this->content;
         }
 
-        $this->content =  new stdClass;
+        $this->content = new stdClass;
 
         if ($this->config->assignment == null) {
             $this->content->text = 'No assignment selected';
@@ -84,12 +109,14 @@ class block_vmchecker extends block_base {
         $assign = new \assign($context, null, null);
         $participants = $assign->list_participants(0, false, false);
         $filtered_participants = array();
+        $allUsersID = array();
         foreach ($participants as $user) {
             $submission = $assign->get_user_submission($user->id, false);
             if ($submission == null || $submission->status != "submitted")
                 continue;
 
             array_push($filtered_participants, $user);
+            array_push($allUsersID, $user->id);
         }
 
         $form_custom_data = array(
@@ -97,34 +124,40 @@ class block_vmchecker extends block_base {
             'assignid' => $this->config->assignment,
         );
         $mform = new block_vmchecker\form\ta_form($FULLME, $form_custom_data);
-        $this->process_form($mform);
+        $this->process_form($mform, $allUsersID);
 
         $this->content->text .= '<br><br>' . $mform->render();
 
         return $this->content;
     }
 
-    public function applicable_formats() {
+    public function applicable_formats()
+    {
         return array('course-view' => true);
     }
 
-    public function instance_allow_multiple() {
+    public function instance_allow_multiple()
+    {
         return true;
     }
 
-    function instance_create() {
+    function instance_create()
+    {
         global $DB;
 
-        $DB->insert_record('block_vmchecker_options',
+        $DB->insert_record(
+            'block_vmchecker_options',
             array(
                 'blockinstanceid' => $this->instance->id,
                 'assignid' => -1,
-        ));
+            )
+        );
 
         return parent::instance_create();
     }
 
-    function instance_config_save($data, $nolongerused = false) {
+    function instance_config_save($data, $nolongerused = false)
+    {
         global $DB;
 
         parent::instance_config_save($data, $nolongerused);
@@ -134,7 +167,8 @@ class block_vmchecker extends block_base {
         ]);
     }
 
-    function instance_delete() {
+    function instance_delete()
+    {
         global $DB;
 
         $DB->delete_records('block_vmchecker_options', array('blockinstanceid' => $this->instance->id));
