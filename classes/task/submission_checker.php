@@ -95,7 +95,7 @@ class submission_checker extends \core\task\scheduled_task {
                     $DB->delete_records('block_vmchecker_submissions', array('id' => $submission->id));
                     break;
                 default:
-                    continue 2;   
+                    continue 2;
             }
         }
 

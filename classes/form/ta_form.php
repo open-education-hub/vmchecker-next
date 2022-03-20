@@ -29,9 +29,9 @@ class ta_form extends moodleform {
             'action',
             'Action',
             array(
-                ta_form::ACTION_RECHECK => 'Recheck submissions for ...',
-                ta_form::ACTION_RECHECK_ALL => 'Recheck all submissions',
-                ta_form::ACTION_MOSS => 'MOSS check for ...'
+                ta_form::ACTION_RECHECK => get_string('action_recheck', 'block_vmchecker'),
+                ta_form::ACTION_RECHECK_ALL => get_string('action_recheck_all', 'block_vmchecker'),
+                ta_form::ACTION_MOSS => get_string('action_moss', 'block_vmchecker'),
             ),
             array('id' => $selectID)
         );
@@ -62,7 +62,7 @@ class ta_form extends moodleform {
 
             select.addEventListener("change", selectAction);
             selectAction();
-            
+
             function selectAction() {
                 const selectValue = select.options[select.selectedIndex].value
                 if (selectValue === "' . ta_form::ACTION_RECHECK_ALL . '") {
@@ -79,7 +79,7 @@ class ta_form extends moodleform {
         $mform->addElement('hidden', 'assignid', $this->_customdata['assignid']);
         $mform->setType('assignid', PARAM_RAW);
 
-        $this->add_action_buttons(false, 'Run action');
+        $this->add_action_buttons(false,  get_string('form_run_action', 'block_vmchecker'));
     }
 
     function getParticipants() {

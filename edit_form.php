@@ -6,7 +6,8 @@ class block_vmchecker_edit_form extends block_edit_form {
         $mform->addElement('header', 'config_vmchecker_header', get_string('header', 'block_vmchecker'));
         $mform->setExpanded('config_vmchecker_header');
 
-        $mform->addElement('select', 'config_autograding', get_string('autograding', 'block_vmchecker'), array(true => 'Yes', false => 'No'), null);
+        $mform->addElement('select', 'config_autograding', get_string('autograding', 'block_vmchecker'),
+            array(true => get_string('autograding_yes', 'block_vmchecker'), false => get_string('autograding_no', 'block_vmchecker')), null);
         $mform->setDefault('config_autograding', true);
         $mform->settype('config_autograding', PARAM_BOOL);
 

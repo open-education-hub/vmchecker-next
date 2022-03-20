@@ -79,7 +79,7 @@ class block_vmchecker extends block_base
         $this->content = new stdClass;
 
         if ($this->config->assignment == null) {
-            $this->content->text = 'No assignment selected';
+            $this->content->text = get_string('no_assignment_selected', 'block_vmchecker');
             return $this->content;
         }
 
@@ -87,7 +87,7 @@ class block_vmchecker extends block_base
         $api = new \block_vmchecker\backend\api($CFG->block_vmchecker_backend);
 
         if (!$api->healthcheck()) {
-            $this->content->text = 'VMChecker backend at "' . $CFG->block_vmchecker_backend . '" is offline.';
+            $this->content->text = get_string('form_backend_down', 'block_vmchecker', $CFG->block_vmchecker_backend);
             return $this->content;
         }
 
@@ -100,8 +100,7 @@ class block_vmchecker extends block_base
             'gitlab_project_id' => $this->config->gitlab_project_id,
         ));
 
-        $this->content->text = 'New: ' . count($tasks_new) . '<br>';
-        $this->content->text .= 'Waiting for results: ' . count($tasks_wfr);
+        $this->content->text =get_string('form_queue_info', 'block_vmchecker', ['new' => $tasks_new, 'waiting_for_results' => $tasks_wfr]);
 
         $cm = get_coursemodule_from_instance('assign', $this->config->assignment, 0, false, MUST_EXIST);
         $context = \context_module::instance($cm->id);

@@ -2,9 +2,9 @@
 
 defined('MOODLE_INTERNAL') || die;
 
-if ($ADMIN->fulltree)
+if ($ADMIN->fulltree) {
     $settings->add(new admin_setting_configtext('block_vmchecker_backend', 'vmck backend',
-                   'Backend API. The URL path must include the api version', 'http://localhost:8000/api/v1/', PARAM_RAW));
+                    get_string('backend_description', 'block_vmchecker'), 'http://localhost:8000/api/v1/', PARAM_RAW));
     $settings->add(new admin_setting_configtext('block_vmchecker_submission_check', 'Submissions check count',
-                   'Number of submissions to be checked in a single run of cron', 50, PARAM_INT));
- 
+                    get_string('check_count_description', 'block_vmchecker'), 50, PARAM_INT));
+}
