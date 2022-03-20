@@ -16,14 +16,14 @@ class ta_form extends moodleform {
     public function definition() {
         $mform = $this->_form;
 
-        $searchBoxID = uniqid();
-        $userListID = uniqid();
-        $selectID = uniqid();
+        $search_box_id = uniqid();
+        $user_list_id = uniqid();
+        $select_id = uniqid();
 
-        $mform->addElement('text', 'search', 'Search', array('size' => '20', 'id' => $searchBoxID));
+        $mform->addElement('text', 'search', 'Search', array('size' => '20', 'id' => $search_box_id));
         $mform->setType('search', PARAM_RAW);
-        $usersSelect = $mform->addElement('select', 'user', 'User', $this->getParticipants(), array('style' => 'width: 100%','id' => $userListID));
-        $usersSelect->setMultiple(true);
+        $users_select = $mform->addElement('select', 'user', 'User', $this->get_participants(), array('style' => 'width: 100%','id' => $user_list_id));
+        $users_select->setMultiple(true);
         $mform->addElement(
             'select',
             'action',
@@ -33,14 +33,14 @@ class ta_form extends moodleform {
                 ta_form::ACTION_RECHECK_ALL => get_string('action_recheck_all', 'block_vmchecker'),
                 ta_form::ACTION_MOSS => get_string('action_moss', 'block_vmchecker'),
             ),
-            array('id' => $selectID)
+            array('id' => $select_id)
         );
         $mform->addElement('html', '
         <script>
             let timeout;
-            const searchBox = document.getElementById("' . $searchBoxID . '");
-            const userList = document.getElementById("' . $userListID . '");
-            const select = document.getElementById("' . $selectID . '");
+            const searchBox = document.getElementById("' . $search_box_id . '");
+            const userList = document.getElementById("' . $user_list_id . '");
+            const select = document.getElementById("' . $select_id . '");
 
             searchBox.addEventListener("input", (e) => {
                 if (timeout)
@@ -82,15 +82,15 @@ class ta_form extends moodleform {
         $this->add_action_buttons(false,  get_string('form_run_action', 'block_vmchecker'));
     }
 
-    function getParticipants() {
+    function get_participants() {
         $participants = $this->_customdata['participants'];
-        $formatedData = array();
+        $formated_data = array();
 
         foreach ($participants as $user) {
-            $formatedData[$user->id] = $user->firstname . ' ' . $user->lastname . ' - ' . $user->username;
+            $formated_data[$user->id] = $user->firstname . ' ' . $user->lastname . ' - ' . $user->username;
         }
 
-        return $formatedData;
+        return $formated_data;
     }
 
     function validation($data, $files) {

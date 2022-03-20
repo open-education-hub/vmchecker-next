@@ -5,10 +5,10 @@ namespace block_vmchecker\backend;
 defined('MOODLE_INTERNAL') || die();
 
 class api {
-    private string $apiURL;
+    private string $api_url;
 
-    public function __construct(string $apiURL) {
-        $this->apiURL = $apiURL;
+    public function __construct(string $api_url) {
+        $this->api_url = $api_url;
     }
 
     private function query_service(string $endpoint, ?array $query_params, ?array $payload) {
@@ -23,7 +23,7 @@ class api {
             curl_setopt($ch, CURLOPT_HTTPGET, true);
         }
 
-        $fullURL = $this->apiURL . $endpoint;
+        $fullURL = $this->api_url . $endpoint;
         if ($query_params !== null)
             $fullURL .= '?' . http_build_query($query_params);
 

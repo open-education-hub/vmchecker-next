@@ -20,17 +20,17 @@ class block_vmchecker extends block_base
 
     private function set_title()
     {
-        $course_activities = get_array_of_activities($this->page->course->id);
-        foreach ($course_activities as $activity) {
-            if ($activity->mod != "assign" || $activity->id != $this->config->assignment)
-                continue;
+        if (!$this->config->assignment)
+            return;
 
-            $this->title = get_string('vmchecker', 'block_vmchecker') . ' - ' . $activity->name;
-            break;
-        }
+        $cm = get_coursemodule_from_instance('assign', $this->config->assignment, 0, false, MUST_EXIST);
+        $context = \context_module::instance($cm->id);
+
+        $assign = new \assign($context, null, null);
+        $this->title = get_string('vmchecker', 'block_vmchecker') . ' - ' . $assign->get_default_instance()->name;
     }
 
-    private function process_form(block_vmchecker\form\ta_form $form, array $allUsers)
+    private function process_form(block_vmchecker\form\ta_form $form, array $all_users)
     {
         $fromform = $form->get_data();
 
@@ -55,7 +55,7 @@ class block_vmchecker extends block_base
                 $task->set_custom_data(array(
                     'assignid' => $this->config->assignment,
                     'config' => $this->config,
-                    'users' => $allUsers,
+                    'users' => $all_users,
                 ));
                 \core\task\manager::queue_adhoc_task($task, true);
                 break;
@@ -108,14 +108,14 @@ class block_vmchecker extends block_base
         $assign = new \assign($context, null, null);
         $participants = $assign->list_participants(0, false, false);
         $filtered_participants = array();
-        $allUsersID = array();
-        foreach ($participants as $user) {
-            $submission = $assign->get_user_submission($user->id, false);
-            if ($submission == null || $submission->status != "submitted")
+        $all_users_id = array();
+        foreach ($participants as $p) {
+            $submission = $assign->get_user_submission($p->id, false);
+            if ($submission == null || $submission->status != ASSIGN_SUBMISSION_STATUS_SUBMITTED)
                 continue;
 
-            array_push($filtered_participants, $user);
-            array_push($allUsersID, $user->id);
+            array_push($filtered_participants, $p);
+            array_push($all_users_id, $p->id);
         }
 
         $form_custom_data = array(
@@ -123,7 +123,7 @@ class block_vmchecker extends block_base
             'assignid' => $this->config->assignment,
         );
         $mform = new block_vmchecker\form\ta_form($FULLME, $form_custom_data);
-        $this->process_form($mform, $allUsersID);
+        $this->process_form($mform, $all_users_id);
 
         $this->content->text .= '<br><br>' . $mform->render();
 

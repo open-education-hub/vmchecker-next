@@ -5,19 +5,19 @@ namespace block_vmchecker\listener;
 defined('MOODLE_INTERNAL') || die();
 
 class observer {
-    private static function stopPreviousAttemp($assignmentId) {
+    private static function stop_previous_attempt($assignmentId) {
         global $DB, $USER, $CFG;
-        
-        $previousAttempt = $DB->get_record('block_vmchecker_submissions',
+
+        $previous_attempt = $DB->get_record('block_vmchecker_submissions',
             array(
                 'userid' => $USER->id,
                 'assignid' => $assignmentId,
         ));
-        if (!$previousAttempt)
+        if (!$previous_attempt)
             return;
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . $previousAttempt->uuid . '/cancel');
+        curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . $previous_attempt->uuid . '/cancel');
         curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -26,10 +26,7 @@ class observer {
 
         curl_close($ch);
 
-        $DB->delete_records('block_vmchecker_submissions',
-            array('id' => $previousAttempt->id)
-        );
-
+        $DB->delete_records('block_vmchecker_submissions', array('id' => $previous_attempt->id));
     }
 
     public static function submit(\core\event\base $event) {
@@ -37,25 +34,19 @@ class observer {
 
         $data = $event->get_data();
         $submission = $DB->get_record($data['objecttable'],
-            array(
-                'id' => $data['objectid']
-        ));
+            array('id' => $data['objectid']));
 
         $vmchecker_options = $DB->get_record('block_vmchecker_options',
-            array(
-                'assignid' => $submission->assignment
-        ));
+            array('assignid' => $submission->assignment));
 
         // The assignment is not a vmchecker type
         if ($vmchecker_options == null)
             return;
 
-        \block_vmchecker\listener\observer::stopPreviousAttemp($submission->assignment);
+        \block_vmchecker\listener\observer::stop_previous_attempt($submission->assignment);
 
         $config_data = $DB->get_record('block_instances',
-            array(
-                'id' => $vmchecker_options->blockinstanceid
-        ), 'configdata')->configdata;
+            array('id' => $vmchecker_options->blockinstanceid), 'configdata')->configdata;
         $config = unserialize(base64_decode($config_data));
 
         $fs = get_file_storage();
