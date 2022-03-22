@@ -15,7 +15,7 @@ class submission_checker extends \core\task\scheduled_task {
     private function done_submission($ch, $submission) {
         global $DB, $CFG;
 
-        curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . $submission->uuid . '/trace');
+        curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . '/' . $submission->uuid . '/trace');
 
         $response = json_decode(curl_exec($ch), true);
         $trace = $this->clean_trace(base64_decode($response['trace']));
@@ -45,9 +45,8 @@ class submission_checker extends \core\task\scheduled_task {
     }
 
     private function clean_trace(string $trace) {
-        $matches = array();
-        preg_match('/VMCHECKER_TRACE_CLEANUP\n/', $trace , $matches, PREG_OFFSET_CAPTURE);
-        $trace = substr($trace, $matches[0][1] + strlen($matches[0][0]));
+        $offset = strpos($trace, 'VMCHECKER_TRACE_CLEANUP\n', $trace);
+        $trace = substr($trace, $offset + strlen('VMCHECKER_TRACE_CLEANUP\n'));
 
         $matches = array();
         preg_match('/Total:\ *([0-9]+)/', $trace , $matches, PREG_OFFSET_CAPTURE);
@@ -72,19 +71,24 @@ class submission_checker extends \core\task\scheduled_task {
 
         $this->log('Found ' . count($active_submissions) . ' submissions to be checked');
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPGET, true);
-
         foreach($active_submissions as $submission) {
             $this->log('Checking task ' . $submission->id);
 
             $submission->updatedat = time();
             $DB->update_record('block_vmchecker_submissions', $submission);
 
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPGET, true);
             curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . $submission->uuid . '/status');
 
-            $response = json_decode(curl_exec($ch), true);
+            $raw_data = curl_exec($ch);
+            if ($raw_data === false) {
+                $this->log('Failed to retrieve data for task ' . $submission->id);
+                continue;
+            }
+
+            $response = json_decode($raw_data, true);
             $this->log('Task status is ' . $response['status']);
 
             switch($response['status']) {
@@ -94,11 +98,10 @@ class submission_checker extends \core\task\scheduled_task {
                 case 'error':
                     $DB->delete_records('block_vmchecker_submissions', array('id' => $submission->id));
                     break;
-                default:
-                    continue 2;
             }
+
+            curl_close($ch);
         }
 
-        curl_close($ch);
     }
 }

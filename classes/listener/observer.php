@@ -14,19 +14,22 @@ class observer {
                 'assignid' => $assignmentId,
         ));
         if (!$previous_attempt)
-            return;
+            return true;
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . $previous_attempt->uuid . '/cancel');
+        curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . '/' . $previous_attempt->uuid . '/cancel');
         curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-        curl_exec($ch);
+        $raw_data = curl_exec($ch);
+        if ($raw_data === false)
+            return false;
 
         curl_close($ch);
 
         $DB->delete_records('block_vmchecker_submissions', array('id' => $previous_attempt->id));
+        return true;
     }
 
     public static function submit(\core\event\base $event) {
@@ -43,7 +46,8 @@ class observer {
         if ($vmchecker_options == null)
             return;
 
-        \block_vmchecker\listener\observer::stop_previous_attempt($submission->assignment);
+        if (!\block_vmchecker\listener\observer::stop_previous_attempt($submission->assignment))
+            return;
 
         $config_data = $DB->get_record('block_instances',
             array('id' => $vmchecker_options->blockinstanceid), 'configdata')->configdata;
@@ -70,13 +74,15 @@ class observer {
         ));
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . 'submit');
+        curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . '/submit');
         curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
         $response = curl_exec($ch);
+        if ($response === false)
+            return;
 
         curl_close($ch);
 

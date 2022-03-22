@@ -19,5 +19,5 @@ $string['check_count_description'] = 'Number of submissions to be checked in a s
 $string['autograding_yes'] = 'Yes';
 $string['autograding_no'] = 'No';
 $string['form_run_action'] = 'Run action';
-$string['form_queue_info'] = 'New: {$o->new}<br>Waiting for results: {$o->waiting_for_results}';
+$string['form_queue_info'] = 'New: {$a->new}<br>Waiting for results: {$a->waiting_for_results}';
 $string['form_backend_down'] = 'VMChecker backend at "{$a}" is offline.';

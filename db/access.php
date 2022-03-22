@@ -17,9 +17,8 @@ $capabilities = array(
     'block/vmchecker:view' => array(
         'captype' => 'read',
         'contextlevel' => CONTEXT_BLOCK,
-        'legacy' => array(
+        'archetypes' => array(
             'editingteacher' => CAP_ALLOW,
-            'teacher' => CAP_ALLOW,
             'manager' => CAP_ALLOW
         ),
 

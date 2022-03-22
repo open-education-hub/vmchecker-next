@@ -2,7 +2,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once(__DIR__ . '/classes/form/ta_form.php');
+require_once(__DIR__ . '/classes/form/block_form.php');
 require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
 class block_vmchecker extends block_base
@@ -30,7 +30,7 @@ class block_vmchecker extends block_base
         $this->title = get_string('vmchecker', 'block_vmchecker') . ' - ' . $assign->get_default_instance()->name;
     }
 
-    private function process_form(block_vmchecker\form\ta_form $form, array $all_users)
+    private function process_form(block_vmchecker\form\block_form $form, array $all_users)
     {
         $fromform = $form->get_data();
 
@@ -41,7 +41,7 @@ class block_vmchecker extends block_base
             return;
 
         switch ($fromform->action) {
-            case block_vmchecker\form\ta_form::ACTION_RECHECK:
+            case block_vmchecker\form\block_form::ACTION_RECHECK:
                 $task = new block_vmchecker\task\recheck_task();
                 $task->set_custom_data(array(
                     'assignid' => $this->config->assignment,
@@ -50,7 +50,7 @@ class block_vmchecker extends block_base
                 ));
                 \core\task\manager::queue_adhoc_task($task, true);
                 break;
-            case block_vmchecker\form\ta_form::ACTION_RECHECK_ALL:
+            case block_vmchecker\form\block_form::ACTION_RECHECK_ALL:
                 $task = new block_vmchecker\task\recheck_task();
                 $task->set_custom_data(array(
                     'assignid' => $this->config->assignment,
@@ -59,14 +59,18 @@ class block_vmchecker extends block_base
                 ));
                 \core\task\manager::queue_adhoc_task($task, true);
                 break;
-            case block_vmchecker\form\ta_form::ACTION_MOSS:
+            case block_vmchecker\form\block_form::ACTION_MOSS:
                 break;
+            default:
+                return false;
         }
+
+        return true;
     }
 
     public function get_content()
     {
-        global $CFG, $FULLME;
+        global $CFG;
 
         if (!has_capability('block/vmchecker:view', $this->context)) {
             return null;
@@ -100,7 +104,8 @@ class block_vmchecker extends block_base
             'gitlab_project_id' => $this->config->gitlab_project_id,
         ));
 
-        $this->content->text =get_string('form_queue_info', 'block_vmchecker', ['new' => $tasks_new, 'waiting_for_results' => $tasks_wfr]);
+        $this->content->text = get_string('form_queue_info', 'block_vmchecker',
+            ['new' => count($tasks_new), 'waiting_for_results' => count($tasks_wfr)]);
 
         $cm = get_coursemodule_from_instance('assign', $this->config->assignment, 0, false, MUST_EXIST);
         $context = \context_module::instance($cm->id);
@@ -122,8 +127,9 @@ class block_vmchecker extends block_base
             'participants' => $filtered_participants,
             'assignid' => $this->config->assignment,
         );
-        $mform = new block_vmchecker\form\ta_form($FULLME, $form_custom_data);
-        $this->process_form($mform, $all_users_id);
+        $mform = new block_vmchecker\form\block_form(null, $form_custom_data);
+        if($mform->get_data() && !$this->process_form($mform, $all_users_id))
+            $this->content->text .= '<br>Invalid action!';
 
         $this->content->text .= '<br><br>' . $mform->render();
 

@@ -20,7 +20,7 @@
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="User id"/>
         <FIELD NAME="assignid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Assignment id"/>
         <FIELD NAME="uuid" TYPE="char" LENGTH="36"  NOTNULL="true" SEQUENCE="false" COMMENT="UUID of the submission"/>
-        <FIELD NAME="autograde" TYPE="int" LENGTH="1" NOTNULL="true" SEQUENCE="false" COMMENT="Bool to signify if autograding is enabled"/>
+        <FIELD NAME="autograde" TYPE="int" LENGTH="1" NOTNULL="true" SEQUENCE="false" COMMENT="If autograde is true, the submission will be graded by the system when the pipeline ends"/>
         <FIELD NAME="updatedat" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Timestamp of the last update"/>
       </FIELDS>
       <KEYS>
