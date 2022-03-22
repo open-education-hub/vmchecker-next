@@ -26,15 +26,11 @@ class recheck_task extends \core\task\adhoc_task {
             if ($submission == null || $submission->status != ASSIGN_SUBMISSION_STATUS_SUBMITTED)
                 continue;
 
-            $fs = get_file_storage();
-            $files = $fs->get_area_files($context->id, 'assignsubmission_file', 'submission_files', $submission->id);
-            $submited_file = null;
-            foreach($files as $file) {
-                if ($file->get_filename() != '.') {
-                    $submited_file = $file;
-                    break;
-                }
-            }
+            $submited_files = (new \assign_submission_file($assign, null))->get_files($submission, new \stdClass);
+            if (count($submited_files) !== 1)
+                return;
+
+            $submited_file = $submited_files[array_keys($submited_files)[0]];
 
             $payload = json_encode(array(
                 'gitlab_private_token' => $data->config->gitlab_private_token,

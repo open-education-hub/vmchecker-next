@@ -2,7 +2,11 @@
 
 namespace block_vmchecker\listener;
 
+use stdClass;
+
 defined('MOODLE_INTERNAL') || die();
+
+require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
 class observer {
     private static function stop_previous_attempt($assignmentId) {
@@ -53,18 +57,18 @@ class observer {
             array('id' => $vmchecker_options->blockinstanceid), 'configdata')->configdata;
         $config = unserialize(base64_decode($config_data));
 
-        $fs = get_file_storage();
-        $files = $fs->get_area_files($data['contextid'], 'assignsubmission_file', 'submission_files', $submission->submission);
-        $submited_file = null;
-        foreach($files as $file) {
-            if ($file->get_filename() != '.') {
-                $submited_file = $file;
-                break;
-            }
-        }
+        $cm = get_coursemodule_from_instance('assign', $submission->assignment, 0, false, MUST_EXIST);
+        $context = \context_module::instance($cm->id);
 
-        if (!$submited_file)
+        $assign = new \assign($context, null, null);
+        $mocked_submission = new stdClass();
+        $mocked_submission->id = $submission->submission;
+        $submited_files = (new \assign_submission_file($assign, null))->get_files($mocked_submission, new stdClass);
+        if (count($submited_files) !== 1)
             return;
+
+        $submited_file = $submited_files[array_keys($submited_files)[0]];
+
 
         $payload = json_encode(array(
             'gitlab_private_token' => $config->gitlab_private_token,
