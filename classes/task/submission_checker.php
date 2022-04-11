@@ -12,12 +12,10 @@ class submission_checker extends \core\task\scheduled_task {
         return get_string('submission_checker', 'block_vmchecker');
     }
 
-    private function done_submission($ch, $submission) {
-        global $DB, $CFG;
+    private function done_submission($api, $submission) {
+        global $DB;
 
-        curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . '/' . $submission->uuid . '/trace');
-
-        $response = json_decode(curl_exec($ch), true);
+        $response = $api->trace($submission->uuid);
         $trace = $this->clean_trace(base64_decode($response['trace']));
         $this->log('Trace:\n' . $trace);
 
@@ -28,7 +26,7 @@ class submission_checker extends \core\task\scheduled_task {
 
         $matches = array();
         preg_match('/Total:\ *([0-9]+)/', $trace , $matches);
-        $grade = $matches[1];
+        $grade = array_key_last($matches);
         $teachercommenttext = $trace;
         $data = new \stdClass();
         $data->attemptnumber = 0;
@@ -45,12 +43,14 @@ class submission_checker extends \core\task\scheduled_task {
     }
 
     private function clean_trace(string $trace) {
-        $offset = strpos($trace, 'VMCHECKER_TRACE_CLEANUP\n', $trace);
+        $offset = strpos($trace, 'VMCHECKER_TRACE_CLEANUP\n');
         $trace = substr($trace, $offset + strlen('VMCHECKER_TRACE_CLEANUP\n'));
 
         $matches = array();
         preg_match('/Total:\ *([0-9]+)/', $trace , $matches, PREG_OFFSET_CAPTURE);
-        $trace = substr($trace, 0, $matches[1][1] + strlen($matches[1][0]));  // Remove everything after score declaration
+        $last_capture_key = array_key_last($matches);
+        $last_capture_group = $matches[$last_capture_key];
+        $trace = substr($trace, 0, $last_capture_group[1] + strlen($last_capture_group[0]));  // Remove everything after score declaration
 
         return $trace;
     }
@@ -60,16 +60,17 @@ class submission_checker extends \core\task\scheduled_task {
     }
 
     public function execute() {
-        global $DB, $CFG;
+        global $DB;
 
         $this->log('Starting VMChecker task');
 
-        $active_submissions = $DB->get_records('block_vmchecker_submissions', null, 'updatedat ASC', '*', 0, $CFG->block_vmchecker_submission_check);
+        $active_submissions = $DB->get_records('block_vmchecker_submissions', null, 'updatedat ASC', '*', 0, get_config('block_vmchecker', 'submission_check'));
 
         if (!$active_submissions || count($active_submissions) == 0)
             return;
 
         $this->log('Found ' . count($active_submissions) . ' submissions to be checked');
+        $api = new \block_vmchecker\backend\api(get_config('block_vmchecker', 'backend'));
 
         foreach($active_submissions as $submission) {
             $this->log('Checking task ' . $submission->id);
@@ -77,31 +78,22 @@ class submission_checker extends \core\task\scheduled_task {
             $submission->updatedat = time();
             $DB->update_record('block_vmchecker_submissions', $submission);
 
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPGET, true);
-            curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . $submission->uuid . '/status');
-
-            $raw_data = curl_exec($ch);
-            if ($raw_data === false) {
+            $response = $api->status($submission->uuid );
+            if (empty($response)) {
                 $this->log('Failed to retrieve data for task ' . $submission->id);
                 continue;
             }
 
-            $response = json_decode($raw_data, true);
             $this->log('Task status is ' . $response['status']);
 
             switch($response['status']) {
                 case 'done':
-                    $this->done_submission($ch, $submission);
+                    $this->done_submission($api, $submission);
                     break;
                 case 'error':
                     $DB->delete_records('block_vmchecker_submissions', array('id' => $submission->id));
                     break;
             }
-
-            curl_close($ch);
         }
-
     }
 }

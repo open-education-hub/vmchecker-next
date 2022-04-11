@@ -9,20 +9,20 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
 class observer {
-    private static function stop_previous_attempt($assignmentId) {
-        global $DB, $USER, $CFG;
+    private static function stop_previous_attempt($assignment_id) {
+        global $DB, $USER;
 
         $previous_attempt = $DB->get_record('block_vmchecker_submissions',
             array(
                 'userid' => $USER->id,
-                'assignid' => $assignmentId,
+                'assignid' => $assignment_id,
         ));
         if (!$previous_attempt)
             return true;
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . '/' . $previous_attempt->uuid . '/cancel');
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
+        curl_setopt($ch, CURLOPT_URL, get_config('block_vmchecker', 'backend') . '/' . $previous_attempt->uuid . '/cancel');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
@@ -37,7 +37,7 @@ class observer {
     }
 
     public static function submit(\core\event\base $event) {
-        global $DB, $USER, $CFG;
+        global $DB, $USER;
 
         $data = $event->get_data();
         $submission = $DB->get_record($data['objecttable'],
@@ -69,32 +69,23 @@ class observer {
 
         $submited_file = $submited_files[array_keys($submited_files)[0]];
 
-
-        $payload = json_encode(array(
+        $payload = array(
             'gitlab_private_token' => $config->gitlab_private_token,
             'gitlab_project_id' => $config->gitlab_project_id,
             'username' => $USER->username,
             'archive' => base64_encode($submited_file->get_content()),
-        ));
+        );
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $CFG->block_vmchecker_backend . '/submit');
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-        $response = curl_exec($ch);
-        if ($response === false)
+        $api = new \block_vmchecker\backend\api(get_config('block_vmchecker', 'backend'));
+        $response = $api->submit($payload);
+        if (empty($response))
             return;
-
-        curl_close($ch);
 
         $DB->insert_record('block_vmchecker_submissions',
             array(
                 'userid' => $USER->id,
                 'assignid' => $submission->assignment,
-                'uuid' => json_decode($response, true)['UUID'],
+                'uuid' => $response['UUID'],
                 'autograde' => $config->autograding === '1',
                 'updatedat' => time(),
         ));

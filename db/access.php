@@ -21,7 +21,13 @@ $capabilities = array(
             'editingteacher' => CAP_ALLOW,
             'manager' => CAP_ALLOW
         ),
+    ),
 
-        'clonepermissionsfrom' => 'moodle/block:view'
+    'block/vmchecker:submit' => array(
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_BLOCK,
+        'archetypes' => array(
+            'student' => CAP_ALLOW,
+        ),
     ),
 );

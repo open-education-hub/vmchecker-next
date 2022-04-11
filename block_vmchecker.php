@@ -3,6 +3,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/classes/form/block_form.php');
+require_once(__DIR__ . '/classes/form/submit_form.php');
 require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
 class block_vmchecker extends block_base
@@ -30,7 +31,7 @@ class block_vmchecker extends block_base
         $this->title = get_string('vmchecker', 'block_vmchecker') . ' - ' . $assign->get_default_instance()->name;
     }
 
-    private function process_form(block_vmchecker\form\block_form $form, array $all_users)
+    private function process_block_form(block_vmchecker\form\block_form $form, array $all_users)
     {
         $fromform = $form->get_data();
 
@@ -68,9 +69,44 @@ class block_vmchecker extends block_base
         return true;
     }
 
+    private function process_submit_form(block_vmchecker\form\submit_form $form, \block_vmchecker\backend\api $api)
+    {
+        global $USER, $DB;
+
+        $fromform = $form->get_data();
+
+        if ($fromform === null)
+            return;
+
+        if ($fromform->assignid !== $this->config->assignment)
+            return;
+
+        $payload = array(
+            'gitlab_private_token' => $fromform->gitlab_access_token,
+            'gitlab_project_id' => $fromform->gitlab_project_id,
+            'username' => $USER->username,
+        );
+
+        $api = new \block_vmchecker\backend\api(get_config('block_vmchecker', 'backend'));
+        $response = $api->pipeline_output($payload);
+        if (empty($response))
+            return;
+
+        $DB->insert_record('block_vmchecker_submissions',
+            array(
+                'userid' => $USER->id,
+                'assignid' => $this->config->assignment,
+                'uuid' => $response['UUID'],
+                'autograde' => $this->config->autograding === '1',
+                'updatedat' => time(),
+        ));
+
+        return true;
+    }
+
     public function get_content()
     {
-        global $CFG;
+        global $FULLME;
 
         if (!has_capability('block/vmchecker:view', $this->context)) {
             return null;
@@ -88,50 +124,65 @@ class block_vmchecker extends block_base
         }
 
         $this->set_title();
-        $api = new \block_vmchecker\backend\api($CFG->block_vmchecker_backend);
+        $backend_url = get_config('block_vmchecker', 'backend');
+        $api = new \block_vmchecker\backend\api($backend_url);
 
         if (!$api->healthcheck()) {
-            $this->content->text = get_string('form_backend_down', 'block_vmchecker', $CFG->block_vmchecker_backend);
+            $this->content->text = get_string('form_backend_down', 'block_vmchecker', $backend_url);
             return $this->content;
         }
 
-        $tasks_new = $api->info(array(
-            'status' => 'new',
-            'gitlab_project_id' => $this->config->gitlab_project_id,
-        ));
-        $tasks_wfr = $api->info(array(
-            'status' => 'waiting_for_results',
-            'gitlab_project_id' => $this->config->gitlab_project_id,
-        ));
+        if (has_capability('block/vmchecker:submit', $this->context)) {
+            $this->content->text = '';
 
-        $this->content->text = get_string('form_queue_info', 'block_vmchecker',
-            ['new' => count($tasks_new), 'waiting_for_results' => count($tasks_wfr)]);
+            $mform = new block_vmchecker\form\submit_form($FULLME, array('assignid' => $this->config->assignment));
+            if($mform->get_data() && !$this->process_submit_form($mform, $api))
+                $this->content->text .= 'Error processing the request!<br><br>';
 
-        $cm = get_coursemodule_from_instance('assign', $this->config->assignment, 0, false, MUST_EXIST);
-        $context = \context_module::instance($cm->id);
+            $this->content->text .= $mform->render();
+        } else {
+            $tasks_new = $api->info(array(
+                'status' => \block_vmchecker\backend\api::TASK_STATE_NEW,
+                'gitlab_project_id' => $this->config->gitlab_project_id,
+            ));
+            $tasks_rs = $api->info(array(
+                'status' => \block_vmchecker\backend\api::TASK_STATE_RETRIEVE_SUBMISSION,
+                'gitlab_project_id' => $this->config->gitlab_project_id,
+            ));
+            $tasks_wfr = $api->info(array(
+                'status' => \block_vmchecker\backend\api::TASK_STATE_WAITING_FOR_RESULTS,
+                'gitlab_project_id' => $this->config->gitlab_project_id,
+            ));
 
-        $assign = new \assign($context, null, null);
-        $participants = $assign->list_participants(0, false, false);
-        $filtered_participants = array();
-        $all_users_id = array();
-        foreach ($participants as $p) {
-            $submission = $assign->get_user_submission($p->id, false);
-            if ($submission == null || $submission->status != ASSIGN_SUBMISSION_STATUS_SUBMITTED)
-                continue;
+            $this->content->text = get_string('form_queue_info', 'block_vmchecker',
+                ['new' => count($tasks_new) + count($tasks_rs), 'waiting_for_results' => count($tasks_wfr)]);
 
-            array_push($filtered_participants, $p);
-            array_push($all_users_id, $p->id);
+            $cm = get_coursemodule_from_instance('assign', $this->config->assignment, 0, false, MUST_EXIST);
+            $context = \context_module::instance($cm->id);
+
+            $assign = new \assign($context, null, null);
+            $participants = $assign->list_participants(0, false, false);
+            $filtered_participants = array();
+            $all_users_id = array();
+            foreach ($participants as $p) {
+                $submission = $assign->get_user_submission($p->id, false);
+                if ($submission == null || $submission->status != ASSIGN_SUBMISSION_STATUS_SUBMITTED)
+                    continue;
+
+                array_push($filtered_participants, $p);
+                array_push($all_users_id, $p->id);
+            }
+
+            $form_custom_data = array(
+                'participants' => $filtered_participants,
+                'assignid' => $this->config->assignment,
+            );
+            $mform = new block_vmchecker\form\block_form($FULLME, $form_custom_data);
+            if($mform->get_data() && !$this->process_block_form($mform, $all_users_id))
+                $this->content->text .= '<br>Invalid action!';
+
+            $this->content->text .= '<br><br>' . $mform->render();
         }
-
-        $form_custom_data = array(
-            'participants' => $filtered_participants,
-            'assignid' => $this->config->assignment,
-        );
-        $mform = new block_vmchecker\form\block_form(null, $form_custom_data);
-        if($mform->get_data() && !$this->process_form($mform, $all_users_id))
-            $this->content->text .= '<br>Invalid action!';
-
-        $this->content->text .= '<br><br>' . $mform->render();
 
         return $this->content;
     }
