@@ -37,7 +37,7 @@ class observer {
     }
 
     public static function submit(\core\event\base $event) {
-        global $DB, $USER;
+        global $DB;
 
         $data = $event->get_data();
         $submission = $DB->get_record($data['objecttable'],
@@ -46,7 +46,7 @@ class observer {
         $vmchecker_options = $DB->get_record('block_vmchecker_options',
             array('assignid' => $submission->assignment));
 
-        // The assignment is not a vmchecker type
+            // The assignment is not a vmchecker type
         if ($vmchecker_options == null)
             return;
 
@@ -69,10 +69,13 @@ class observer {
 
         $submited_file = $submited_files[array_keys($submited_files)[0]];
 
+        $params = array('assignment'=>$assign->get_instance()->id, 'id'=>$submission->submission);
+        $user_submission = $DB->get_record('assign_submission', $params, '*', MUST_EXIST);
+
         $payload = array(
             'gitlab_private_token' => $config->gitlab_private_token,
             'gitlab_project_id' => $config->gitlab_project_id,
-            'username' => $USER->username,
+            'username' => $assign->get_participant($user_submission->userid)->username,
             'archive' => base64_encode($submited_file->get_content()),
         );
 
@@ -83,7 +86,7 @@ class observer {
 
         $DB->insert_record('block_vmchecker_submissions',
             array(
-                'userid' => $USER->id,
+                'userid' => $user_submission->userid,
                 'assignid' => $submission->assignment,
                 'uuid' => $response['UUID'],
                 'autograde' => $config->autograding === '1',

@@ -26,10 +26,11 @@ class submission_checker extends \core\task\scheduled_task {
 
         $matches = array();
         preg_match('/Total:\ *([0-9]+)/', $trace , $matches);
-        $grade = array_key_last($matches);
+        $grade_key = array_key_last($matches);
+        $grade = $matches[$grade_key];
         $teachercommenttext = $trace;
         $data = new \stdClass();
-        $data->attemptnumber = 0;
+        $data->attemptnumber = -1;
         if ($submission->autograde)
             $data->grade = $grade;
         else
@@ -87,10 +88,10 @@ class submission_checker extends \core\task\scheduled_task {
             $this->log('Task status is ' . $response['status']);
 
             switch($response['status']) {
-                case 'done':
+                case \block_vmchecker\backend\api::TASK_STATE_DONE:
                     $this->done_submission($api, $submission);
                     break;
-                case 'error':
+                case \block_vmchecker\backend\api::TASK_STATE_ERROR:
                     $DB->delete_records('block_vmchecker_submissions', array('id' => $submission->id));
                     break;
             }

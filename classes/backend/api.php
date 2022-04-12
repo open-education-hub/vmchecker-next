@@ -9,8 +9,8 @@ class api {
 
     public const TASK_STATE_NEW = 'new';
     public const TASK_STATE_WAITING_FOR_RESULTS = 'waiting_for_results';
-    public const TASK_STATE_RETRIEVE_SUBMISSION = 'retrieve_submission';
     public const TASK_STATE_DONE = 'done';
+    public const TASK_STATE_ERROR = 'error';
 
     public function __construct(string $api_url) {
         $this->api_url = $api_url;
@@ -85,11 +85,10 @@ class api {
     *   @param  array   $payload
     *       gitlab_private_token:   string
     *       gitlab_project_id:      int
-    *       username:               string
     *   @return array
     */
-    public function pipeline_output(array $payload) {
-        return $this->query_service('/pipeline_output', null, $payload);
+    public function archive(array $payload) {
+        return $this->query_service('/archive', null, $payload);
     }
 
     /*

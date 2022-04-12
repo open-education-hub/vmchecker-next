@@ -71,7 +71,7 @@ class block_vmchecker extends block_base
 
     private function process_submit_form(block_vmchecker\form\submit_form $form, \block_vmchecker\backend\api $api)
     {
-        global $USER, $DB;
+        global $USER;
 
         $fromform = $form->get_data();
 
@@ -81,25 +81,15 @@ class block_vmchecker extends block_base
         if ($fromform->assignid !== $this->config->assignment)
             return;
 
-        $payload = array(
+        $task = new block_vmchecker\task\retrieve_submission_task();
+        $task->set_custom_data(array(
             'gitlab_private_token' => $fromform->gitlab_access_token,
             'gitlab_project_id' => $fromform->gitlab_project_id,
             'username' => $USER->username,
-        );
-
-        $api = new \block_vmchecker\backend\api(get_config('block_vmchecker', 'backend'));
-        $response = $api->pipeline_output($payload);
-        if (empty($response))
-            return;
-
-        $DB->insert_record('block_vmchecker_submissions',
-            array(
-                'userid' => $USER->id,
-                'assignid' => $this->config->assignment,
-                'uuid' => $response['UUID'],
-                'autograde' => $this->config->autograding === '1',
-                'updatedat' => time(),
+            'userid' => $USER->id,
+            'assignmentid' => $this->config->assignment,
         ));
+        \core\task\manager::queue_adhoc_task($task, true);
 
         return true;
     }
@@ -145,17 +135,13 @@ class block_vmchecker extends block_base
                 'status' => \block_vmchecker\backend\api::TASK_STATE_NEW,
                 'gitlab_project_id' => $this->config->gitlab_project_id,
             ));
-            $tasks_rs = $api->info(array(
-                'status' => \block_vmchecker\backend\api::TASK_STATE_RETRIEVE_SUBMISSION,
-                'gitlab_project_id' => $this->config->gitlab_project_id,
-            ));
             $tasks_wfr = $api->info(array(
                 'status' => \block_vmchecker\backend\api::TASK_STATE_WAITING_FOR_RESULTS,
                 'gitlab_project_id' => $this->config->gitlab_project_id,
             ));
 
             $this->content->text = get_string('form_queue_info', 'block_vmchecker',
-                ['new' => count($tasks_new) + count($tasks_rs), 'waiting_for_results' => count($tasks_wfr)]);
+                ['new' => count($tasks_new), 'waiting_for_results' => count($tasks_wfr)]);
 
             $cm = get_coursemodule_from_instance('assign', $this->config->assignment, 0, false, MUST_EXIST);
             $context = \context_module::instance($cm->id);
