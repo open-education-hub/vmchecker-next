@@ -83,8 +83,8 @@ class block_vmchecker extends block_base
 
         $task = new block_vmchecker\task\retrieve_submission_task();
         $task->set_custom_data(array(
-            'gitlab_private_token' => $fromform->gitlab_access_token,
-            'gitlab_project_id' => $fromform->gitlab_project_id,
+            'gitlab_private_token' => $fromform->{'gitlab_access_token' . $this->config->assignment},
+            'gitlab_project_id' => $fromform->{'gitlab_project_id' . $this->config->assignment},
             'username' => $USER->username,
             'userid' => $USER->id,
             'assignmentid' => $this->config->assignment,
@@ -125,7 +125,7 @@ class block_vmchecker extends block_base
         if (has_capability('block/vmchecker:submit', $this->context)) {
             $this->content->text = '';
 
-            $mform = new block_vmchecker\form\submit_form($FULLME, array('assignid' => $this->config->assignment));
+            $mform = new block_vmchecker\form\submit_form($FULLME, array('assignid' => $this->config->assignment), 'post', '', array('data-random-ids' => true));
             if($mform->get_data() && !$this->process_submit_form($mform, $api))
                 $this->content->text .= 'Error processing the request!<br><br>';
 
