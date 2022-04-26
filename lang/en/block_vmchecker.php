@@ -21,3 +21,4 @@ $string['autograding_no'] = 'No';
 $string['form_run_action'] = 'Run action';
 $string['form_queue_info'] = 'New: {$a->new}<br>Waiting for results: {$a->waiting_for_results}';
 $string['form_backend_down'] = 'VMChecker backend at "{$a}" is offline.';
+$string['form_after_deadline'] = 'The assignment has finished.';

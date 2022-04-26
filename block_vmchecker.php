@@ -113,6 +113,11 @@ class block_vmchecker extends block_base
             return $this->content;
         }
 
+        $cm = get_coursemodule_from_instance('assign', $this->config->assignment, 0, false, MUST_EXIST);
+        $context = \context_module::instance($cm->id);
+
+        $assign = new \assign($context, null, null);
+
         $this->set_title();
         $backend_url = get_config('block_vmchecker', 'backend');
         $api = new \block_vmchecker\backend\api($backend_url);
@@ -125,11 +130,16 @@ class block_vmchecker extends block_base
         if (has_capability('block/vmchecker:submit', $this->context)) {
             $this->content->text = '';
 
-            $mform = new block_vmchecker\form\submit_form($FULLME, array('assignid' => $this->config->assignment), 'post', '', array('data-random-ids' => true));
-            if($mform->get_data() && !$this->process_submit_form($mform, $api))
-                $this->content->text .= 'Error processing the request!<br><br>';
+            $cutoffdate = intval($assign->get_instance()->cutoffdate);
+            if ($cutoffdate !== 0 && time() > $cutoffdate) {
+                $this->content->text .= get_string('form_after_deadline', 'block_vmchecker');
+            } else {
+                $mform = new block_vmchecker\form\submit_form($FULLME, array('assignid' => $this->config->assignment), 'post', '', array('data-random-ids' => true));
+                if($mform->get_data() && !$this->process_submit_form($mform, $api))
+                    $this->content->text .= 'Error processing the request!<br><br>';
 
-            $this->content->text .= $mform->render();
+                $this->content->text .= $mform->render();
+            }
         } else {
             $tasks_new = $api->info(array(
                 'status' => \block_vmchecker\backend\api::TASK_STATE_NEW,
@@ -143,10 +153,6 @@ class block_vmchecker extends block_base
             $this->content->text = get_string('form_queue_info', 'block_vmchecker',
                 ['new' => count($tasks_new), 'waiting_for_results' => count($tasks_wfr)]);
 
-            $cm = get_coursemodule_from_instance('assign', $this->config->assignment, 0, false, MUST_EXIST);
-            $context = \context_module::instance($cm->id);
-
-            $assign = new \assign($context, null, null);
             $participants = $assign->list_participants(0, false, false);
             $filtered_participants = array();
             $all_users_id = array();
