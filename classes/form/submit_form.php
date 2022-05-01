@@ -13,6 +13,8 @@ class submit_form extends moodleform {
     public function definition() {
         $mform = $this->_form;
 
+        // NOTE: Using a custom id for each form element because after a submit all forms are filled in
+        //      with the submited form data
         $gitlab_access_token_id = 'gitlab_access_token' . $this->_customdata['assignid'];
         $mform->addElement('text', $gitlab_access_token_id, 'Access token');
         $mform->setType($gitlab_access_token_id, PARAM_RAW);

@@ -69,7 +69,7 @@ class block_vmchecker extends block_base
         return true;
     }
 
-    private function process_submit_form(block_vmchecker\form\submit_form $form, \block_vmchecker\backend\api $api)
+    private function process_submit_form(block_vmchecker\form\submit_form $form)
     {
         global $USER;
 
@@ -134,9 +134,11 @@ class block_vmchecker extends block_base
             if ($cutoffdate !== 0 && time() > $cutoffdate) {
                 $this->content->text .= get_string('form_after_deadline', 'block_vmchecker');
             } else {
+                // NOTE: Using FULLME because if null is passed strip_querystring($FULLME) will be used.
+                //      It will throw an error for view.php if it does not have a id in its query string
                 $mform = new block_vmchecker\form\submit_form($FULLME, array('assignid' => $this->config->assignment), 'post', '', array('data-random-ids' => true));
-                if($mform->get_data() && !$this->process_submit_form($mform, $api))
-                    $this->content->text .= 'Error processing the request!<br><br>';
+                if($mform->get_data() && !$this->process_submit_form($mform))
+                    $this->content->text .= get_string('form_student_invalid_action', ' block_vmchecker') . '<br><br>';
 
                 $this->content->text .= $mform->render();
             }
@@ -169,9 +171,12 @@ class block_vmchecker extends block_base
                 'participants' => $filtered_participants,
                 'assignid' => $this->config->assignment,
             );
+
+            // NOTE: Using FULLME because if null is passed strip_querystring($FULLME) will be used.
+            //      It will throw an error for view.php if it does not have a id in its query string
             $mform = new block_vmchecker\form\block_form($FULLME, $form_custom_data);
             if($mform->get_data() && !$this->process_block_form($mform, $all_users_id))
-                $this->content->text .= '<br>Invalid action!';
+                $this->content->text .= '<br>' . get_string('form_invalid_action', ' block_vmchecker');
 
             $this->content->text .= '<br><br>' . $mform->render();
         }
