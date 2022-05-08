@@ -69,7 +69,7 @@ class observer {
         if (count($submited_files) !== 1)
             return;
 
-        $submited_file = $submited_files[array_keys($submited_files)[0]];
+        $submited_file = reset($submited_files);
 
         $payload = array(
             'gitlab_private_token' => $config->gitlab_private_token,

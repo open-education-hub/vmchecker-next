@@ -19,9 +19,9 @@ class submit_form extends moodleform {
         $mform->addElement('text', $gitlab_access_token_id, 'Access token');
         $mform->setType($gitlab_access_token_id, PARAM_RAW);
 
-        $gitlab_project_id_id = 'gitlab_project_id' . $this->_customdata['assignid'];
-        $mform->addElement('text', $gitlab_project_id_id, 'Project ID');
-        $mform->setType($gitlab_project_id_id, PARAM_INT);
+        $gitlab_project_id = 'gitlab_project_id' . $this->_customdata['assignid'];
+        $mform->addElement('text', $gitlab_project_id, 'Project ID');
+        $mform->setType($gitlab_project_id, PARAM_INT);
 
         $mform->addElement('hidden', 'assignid', $this->_customdata['assignid']);
         $mform->setType('assignid', PARAM_RAW);

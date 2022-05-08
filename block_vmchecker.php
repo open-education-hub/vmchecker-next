@@ -142,7 +142,7 @@ class block_vmchecker extends block_base
 
                 $this->content->text .= $mform->render();
             }
-        } else {
+        } else if (has_capability('block/vmchecker:manage', $this->context)) {
             $tasks_new = $api->info(array(
                 'status' => \block_vmchecker\backend\api::TASK_STATE_NEW,
                 'gitlab_project_id' => $this->config->gitlab_project_id,
@@ -179,6 +179,8 @@ class block_vmchecker extends block_base
                 $this->content->text .= '<br>' . get_string('form_invalid_action', ' block_vmchecker');
 
             $this->content->text .= '<br><br>' . $mform->render();
+        } else {
+            $this->content->text = get_string('form_not_allowed', 'block_vmchecker');
         }
 
         return $this->content;
