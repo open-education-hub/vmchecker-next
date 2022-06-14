@@ -71,7 +71,7 @@ class block_vmchecker extends block_base
 
     private function process_submit_form(block_vmchecker\form\submit_form $form)
     {
-        global $USER;
+        global $USER, $DB;
 
         $fromform = $form->get_data();
 
@@ -80,6 +80,25 @@ class block_vmchecker extends block_base
 
         if ($fromform->assignid !== $this->config->assignment)
             return;
+
+        $record = $DB->get_record('block_vmchecker_gitlab',  array(
+            'userid' => $USER->id,
+            'assignid' => $this->config->assignment,
+        ), 'id');
+
+        if ($record)
+            $DB->update_record('block_vmchecker_gitlab', array(
+                'id' => $record->id,
+                'projecttoken' => $fromform->{'gitlab_access_token' . $this->config->assignment},
+                'projectid' => (int) $fromform->{'gitlab_project_id' . $this->config->assignment},
+            ));
+        else
+            $DB->insert_record('block_vmchecker_gitlab', array(
+                'userid' => $USER->id,
+                'assignid' => $this->config->assignment,
+                'projecttoken' => $fromform->{'gitlab_access_token' . $this->config->assignment},
+                'projectid' => (int) $fromform->{'gitlab_project_id' . $this->config->assignment},
+            ));
 
         $task = new block_vmchecker\task\retrieve_submission_task();
         $task->set_custom_data(array(
@@ -136,7 +155,7 @@ class block_vmchecker extends block_base
             } else {
                 // NOTE: Using FULLME because if null is passed strip_querystring($FULLME) will be used.
                 //      It will throw an error for view.php if it does not have a id in its query string
-                $mform = new block_vmchecker\form\submit_form($FULLME, array('assignid' => $this->config->assignment), 'post', '', array('data-random-ids' => true));
+                $mform = new block_vmchecker\form\submit_form($FULLME, array('assignid' => $this->config->assignment));
                 if($mform->get_data() && !$this->process_submit_form($mform))
                     $this->content->text .= get_string('form_student_invalid_action', ' block_vmchecker') . '<br><br>';
 
