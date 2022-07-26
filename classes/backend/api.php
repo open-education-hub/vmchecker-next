@@ -114,6 +114,6 @@ class api {
 
 
     public function healthcheck() {
-        return !empty($this->query_service('/healthcheck', null, null));
+        return !empty($this->query_service('/health', null, null));
     }
 }

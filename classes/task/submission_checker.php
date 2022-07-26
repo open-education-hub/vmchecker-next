@@ -79,7 +79,7 @@ class submission_checker extends \core\task\scheduled_task {
             $submission->updatedat = time();
             $DB->update_record('block_vmchecker_submissions', $submission);
 
-            $response = $api->status($submission->uuid );
+            $response = $api->status($submission->uuid);
             if (empty($response)) {
                 $this->log('Failed to retrieve data for task ' . $submission->id);
                 continue;
