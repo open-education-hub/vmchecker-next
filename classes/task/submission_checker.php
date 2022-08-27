@@ -44,8 +44,9 @@ class submission_checker extends \core\task\scheduled_task {
     }
 
     private function clean_trace(string $trace) {
-        $offset = strpos($trace, 'VMCHECKER_TRACE_CLEANUP\n');
-        $trace = substr($trace, $offset + strlen('VMCHECKER_TRACE_CLEANUP\n'));
+        $offset = strpos($trace, 'VMCHECKER_TRACE_CLEANUP');
+        $this->log('Found cleanup mark at: ' . $offset);
+        $trace = substr($trace, $offset + strlen('VMCHECKER_TRACE_CLEANUP') + 1);   // add new line
 
         $matches = array();
         preg_match('/Total:\ *([0-9]+)/', $trace , $matches, PREG_OFFSET_CAPTURE);
