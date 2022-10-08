@@ -1,4 +1,26 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Definition of vmchecker assignment event processor.
+ *
+ * @package   block_vmchecker
+ * @copyright 2022 Mihai Baruta <baruta.mihai99@gmail.com>
+ * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU GPL v3 or later
+ */
 
 namespace block_vmchecker\listener;
 
@@ -8,88 +30,122 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
+/**
+ * Definition of assignment events listener.
+ *
+ * @copyright 2022 Mihai Baruta <baruta.mihai99@gmail.com>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class observer {
-    private static function stop_previous_attempt($assignment_id) {
+
+    /**
+     * Stop the previous submission attemp before making a new one.
+     * @param string $assignid
+     * @return bool
+     */
+    private static function stop_previous_attempt($assignid) {
         global $DB, $USER;
 
-        $previous_attempt = $DB->get_record('block_vmchecker_submissions',
+        $previousattempt = $DB->get_record(
+            'block_vmchecker_submissions',
             array(
                 'userid' => $USER->id,
-                'assignid' => $assignment_id,
-        ));
-        if (!$previous_attempt)
+                'assignid' => $assignid,
+            )
+        );
+        if (!$previousattempt) {
             return true;
+        }
 
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, get_config('block_vmchecker', 'backend') . '/' . $previous_attempt->uuid . '/cancel');
+        curl_setopt($ch, CURLOPT_URL, get_config('block_vmchecker', 'backend') . '/' . $previousattempt->uuid . '/cancel');
         curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-        $raw_data = curl_exec($ch);
-        if ($raw_data === false)
+        $rawdata = curl_exec($ch);
+        if ($rawdata === false) {
             return false;
+        }
 
         curl_close($ch);
 
-        $DB->delete_records('block_vmchecker_submissions', array('id' => $previous_attempt->id));
+        $DB->delete_records('block_vmchecker_submissions', array('id' => $previousattempt->id));
         return true;
     }
 
+    /**
+     * Submit event handler.
+     * @param \core\event\base $event
+     * @return void
+     */
     public static function submit(\core\event\base $event) {
         global $DB;
 
         $data = $event->get_data();
-        $submission_file = $DB->get_record($data['objecttable'],
-            array('id' => $data['objectid']));
+        $submissionfile = $DB->get_record(
+            $data['objecttable'],
+            array('id' => $data['objectid'])
+        );
 
-        $vmchecker_options = $DB->get_record('block_vmchecker_options',
-            array('assignid' => $submission_file->assignment));
+        $vmcheckeroptions = $DB->get_record(
+            'block_vmchecker_options',
+            array('assignid' => $submissionfile->assignment)
+        );
 
-        // The assignment is not a vmchecker type
-        if ($vmchecker_options == null)
+        // The assignment is not a vmchecker type.
+        if ($vmcheckeroptions == null) {
             return;
+        }
 
-        if (!\block_vmchecker\listener\observer::stop_previous_attempt($submission_file->assignment))
+        if (!self::stop_previous_attempt($submissionfile->assignment)) {
             return;
+        }
 
-        $config_data = $DB->get_record('block_instances',
-            array('id' => $vmchecker_options->blockinstanceid), 'configdata')->configdata;
-        $config = unserialize(base64_decode($config_data));
+        $configdata = $DB->get_record(
+            'block_instances',
+            array('id' => $vmcheckeroptions->blockinstanceid),
+            'configdata'
+        )->configdata;
+        $config = unserialize(base64_decode($configdata));
 
-        $cm = get_coursemodule_from_instance('assign', $submission_file->assignment, 0, false, MUST_EXIST);
+        $cm = get_coursemodule_from_instance('assign', $submissionfile->assignment, 0, false, MUST_EXIST);
         $context = \context_module::instance($cm->id);
 
         $assign = new \assign($context, null, null);
 
-        $params = array('assignment'=>$assign->get_instance()->id, 'id'=>$submission_file->submission);
-        $user_submission = $DB->get_record('assign_submission', $params, '*', MUST_EXIST);
+        $params = array('assignment' => $assign->get_instance()->id, 'id' => $submissionfile->submission);
+        $usersubmission = $DB->get_record('assign_submission', $params, '*', MUST_EXIST);
 
-        $submited_files = (new \assign_submission_file($assign, null))->get_files($user_submission, new stdClass);
-        if (count($submited_files) !== 1)
+        $submitedfiles = (new \assign_submission_file($assign, null))->get_files($usersubmission, new stdClass());
+        if (count($submitedfiles) !== 1) {
             return;
+        }
 
-        $submited_file = reset($submited_files);
+        $submitedfile = reset($submitedfiles);
 
         $payload = array(
             'gitlab_private_token' => $config->gitlab_private_token,
             'gitlab_project_id' => $config->gitlab_project_id,
-            'username' => $assign->get_participant($user_submission->userid)->username,
-            'archive' => base64_encode($submited_file->get_content()),
+            'username' => $assign->get_participant($usersubmission->userid)->username,
+            'archive' => base64_encode($submitedfile->get_content()),
         );
 
         $api = new \block_vmchecker\backend\api(get_config('block_vmchecker', 'backend'));
         $response = $api->submit($payload);
-        if (empty($response))
+        if (empty($response)) {
             return;
+        }
 
-        $DB->insert_record('block_vmchecker_submissions',
+        $DB->insert_record(
+            'block_vmchecker_submissions',
             array(
-                'userid' => $user_submission->userid,
-                'assignid' => $user_submission->assignment,
+                'userid' => $usersubmission->userid,
+                'assignid' => $usersubmission->assignment,
                 'uuid' => $response['UUID'],
                 'autograde' => $config->autograding === '1',
                 'updatedat' => time(),
-        ));
+            )
+        );
     }
 }
