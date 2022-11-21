@@ -27,12 +27,13 @@
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
       </KEYS>
     </TABLE>
-    <TABLE NAME="block_vmchecker_gitlab" COMMENT="Private tokens and project ids">
+    <TABLE NAME="block_vmchecker_gitlab" COMMENT="Student submission information (token, project id, branch)">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="User id"/>
         <FIELD NAME="assignid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Assignment id"/>
-        <FIELD NAME="projecttoken" TYPE="char" LENGTH="64"  NOTNULL="true" SEQUENCE="false" COMMENT="Porject access token"/>
+        <FIELD NAME="projecttoken" TYPE="char" LENGTH="64" NOTNULL="true" SEQUENCE="false" COMMENT="Repository access token"/>
+        <FIELD NAME="projectbranch" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" DEFAULT="main" COMMENT="Repository branch" />
         <FIELD NAME="projectid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Gitlab project id"/>
       </FIELDS>
       <KEYS>

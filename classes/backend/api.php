@@ -155,6 +155,7 @@ class api {
      * @param array $payload
      *      gitlab_private_token:   string
      *      gitlab_project_id:      int
+     *      gitlab_branch:          string
      * @return array
      */
     public function archive(array $payload) {

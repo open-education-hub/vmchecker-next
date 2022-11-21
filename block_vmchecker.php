@@ -141,6 +141,7 @@ class block_vmchecker extends block_base {
                 'id' => $record->id,
                 'projecttoken' => $fromform->{'gitlab_access_token' . $this->config->assignment},
                 'projectid' => (int) $fromform->{'gitlab_project_id' . $this->config->assignment},
+                'projectbranch' => $fromform->{'gitlab_branch' . $this->config->assignment},
             ));
         } else {
             $DB->insert_record('block_vmchecker_gitlab', array(
@@ -148,6 +149,7 @@ class block_vmchecker extends block_base {
                 'assignid' => $this->config->assignment,
                 'projecttoken' => $fromform->{'gitlab_access_token' . $this->config->assignment},
                 'projectid' => (int) $fromform->{'gitlab_project_id' . $this->config->assignment},
+                'projectbranch' => $fromform->{'gitlab_branch' . $this->config->assignment},
             ));
         }
 
@@ -155,6 +157,7 @@ class block_vmchecker extends block_base {
         $task->set_custom_data(array(
             'gitlab_private_token' => $fromform->{'gitlab_access_token' . $this->config->assignment},
             'gitlab_project_id' => $fromform->{'gitlab_project_id' . $this->config->assignment},
+            'gitlab_branch' => $fromform->{'gitlab_branch' . $this->config->assignment},
             'username' => $USER->username,
             'userid' => $USER->id,
             'assignmentid' => $this->config->assignment,

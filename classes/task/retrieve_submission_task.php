@@ -58,6 +58,7 @@ class retrieve_submission_task extends \core\task\adhoc_task {
             array(
                 "gitlab_private_token" => $data->gitlab_private_token,
                 "gitlab_project_id" => $data->gitlab_project_id,
+                "gitlab_branch" => $data->gitlab_branch,
             )
         );
 

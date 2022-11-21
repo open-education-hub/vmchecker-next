@@ -67,6 +67,13 @@ class submit_form extends moodleform {
             $mform->setDefault($gitlabprojectid, $defaultvalues->projectid);
         }
 
+        $gitlabbranch = 'gitlab_branch' . $this->_customdata['assignid'];
+        $mform->addElement('text', $gitlabbranch, 'Branch');
+        $mform->setType($gitlabbranch, PARAM_RAW);
+        if ($defaultvalues) {
+            $mform->setDefault($gitlabbranch, $defaultvalues->projectbranch);
+        }
+
         $mform->addElement('hidden', 'assignid', $this->_customdata['assignid']);
         $mform->setType('assignid', PARAM_RAW);
 
