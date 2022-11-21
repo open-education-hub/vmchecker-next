@@ -38,10 +38,10 @@ require_once($CFG->dirroot . '/mod/assign/locallib.php');
 class retrieve_submission_task extends \core\task\adhoc_task {
 
      /**
-     * Logger
-     * @param string $msg
-     * @return void
-     */
+      * Logger
+      * @param string $msg
+      * @return void
+      */
     private function log(string $msg) {
         mtrace('[' . time() . '] ' . $msg);
     }

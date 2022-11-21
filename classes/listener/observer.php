@@ -127,6 +127,7 @@ class observer {
         $payload = array(
             'gitlab_private_token' => $config->gitlab_private_token,
             'gitlab_project_id' => $config->gitlab_project_id,
+            'gitlab_branch' => $config->gitlab_branch,
             'username' => $assign->get_participant($usersubmission->userid)->username,
             'archive' => base64_encode($submitedfile->get_content()),
         );

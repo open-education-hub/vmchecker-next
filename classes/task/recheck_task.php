@@ -79,6 +79,7 @@ class recheck_task extends \core\task\adhoc_task {
             $payload = array(
                 'gitlab_private_token' => $data->config->gitlab_private_token,
                 'gitlab_project_id' => $data->config->gitlab_project_id,
+                'gitlab_branch' => $data->config->gitlab_branch,
                 'username' => $DB->get_record('user', array('id' => $userid), 'username')->username,
                 'archive' => base64_encode($submitedfile->get_content()),
             );

@@ -31,6 +31,7 @@ $string['vmchecker:manage'] = 'User roles allowed to manage the assignemnt (teac
 $string['header'] = 'VMChecker settings';
 $string['gitlab_project_id'] = 'Gitlab repository ID';
 $string['gitlab_private_token'] = 'Gitlab private token';
+$string['gitlab_branch'] = 'Gitlab branch';
 $string['assignment'] = 'Assignment';
 $string['submission_checker'] = 'Submission checker';
 $string['autograding'] = 'Enable autograding of submissions';

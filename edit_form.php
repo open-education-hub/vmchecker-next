@@ -60,6 +60,11 @@ class block_vmchecker_edit_form extends block_edit_form {
         $mform->addRule('config_gitlab_private_token', null, 'required', null, 'client');
         $mform->settype('config_gitlab_private_token', PARAM_TEXT);
 
+        $mform->addElement('text', 'config_gitlab_branch', get_string('gitlab_branch', 'block_vmchecker'));
+        $mform->addRule('config_gitlab_branch', null, 'required', null, 'client');
+        $mform->settype('config_gitlab_branch', PARAM_TEXT);
+        $mform->setDefault('config_gitlab_branch', 'main');
+
         $courseactivities = get_array_of_activities($this->page->course->id);
         $assignments = array();
         foreach ($courseactivities as $activity) {

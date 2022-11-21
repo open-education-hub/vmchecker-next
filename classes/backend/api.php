@@ -141,6 +141,7 @@ class api {
      * @param array $payload
      *      gitlab_private_token:   string
      *      gitlab_project_id:      int
+     *      gitlab_branch:          string
      *      username:               string
      *      archive:                string, archive content - base64 encoded.
      * @return array
