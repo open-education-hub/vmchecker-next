@@ -38,6 +38,17 @@ require_once($CFG->dirroot . '/mod/assign/locallib.php');
 class submission_checker extends \core\task\scheduled_task {
 
     /**
+     * Marker for begining of the trace.
+     * @var string
+     */
+    private const VMCK_NEXT_BEGIN = "<VMCK_NEXT_BEGIN>";
+    /**
+     * Marker for ending of the trace.
+     * @var string
+     */
+    private const VMCK_NEXT_END = "<VMCK_NEXT_END>";
+
+    /**
      * Task name
      * @return string
      */
@@ -64,9 +75,14 @@ class submission_checker extends \core\task\scheduled_task {
         $assign = new \assign($context, null, null);
 
         $matches = array();
-        preg_match('/Total:\ *([0-9]+)/', $trace, $matches);
-        $gradekey = array_key_last($matches);
-        $grade = $matches[$gradekey];
+        $found = preg_match('/Total:\ *([0-9]+)/', $trace, $matches);
+
+        $grade = 0;
+        if ($found === 1) {
+            $gradekey = array_key_last($matches);
+            $grade = $matches[$gradekey];
+        }
+
         $teachercommenttext = $trace;
         $data = new \stdClass();
         $data->attemptnumber = -1;
@@ -89,19 +105,13 @@ class submission_checker extends \core\task\scheduled_task {
      * @return string
      */
     private function clean_trace(string $trace) {
-        $offset = strpos($trace, 'VMCHECKER_TRACE_CLEANUP');
-        $this->log('Found cleanup mark at: ' . $offset);
-        $trace = substr($trace, $offset + strlen('VMCHECKER_TRACE_CLEANUP') + 1);   // Add new line.
+        $offset = strpos($trace, \block_vmchecker\task\submission_checker::VMCK_NEXT_BEGIN);
+        $this->log('Found start cleanup mark at: ' . $offset);
+        $trace = substr($trace, $offset + strlen(\block_vmchecker\task\submission_checker::VMCK_NEXT_BEGIN) + 1);   // Add new line.
 
-        $matches = array();
-        preg_match('/Total:\ *([0-9]+)/', $trace, $matches, PREG_OFFSET_CAPTURE);
-        $lastcapturekey = array_key_last($matches);
-        $lastcapturegroup = $matches[$lastcapturekey];
-        $trace = substr(
-            $trace,
-            0,
-            $lastcapturegroup[1] + strlen($lastcapturegroup[0])
-        );  // Remove everything after score declaration.
+        $offset = strpos($trace, \block_vmchecker\task\submission_checker::VMCK_NEXT_END);
+        $this->log('Found end cleanup mark at: ' . $offset);
+        $trace = substr($trace, 0, $offset);
 
         return $trace;
     }
