@@ -47,6 +47,11 @@ class submission_checker extends \core\task\scheduled_task {
      * @var string
      */
     private const VMCK_NEXT_END = "<VMCK_NEXT_END>";
+    /**
+     * Number of lines from the trace to be used as teacher feedback.
+     * @var int
+     */
+    private const NUMBER_OF_FEEDBACK_LINES = 300;
 
     /**
      * Task name
@@ -83,7 +88,7 @@ class submission_checker extends \core\task\scheduled_task {
             $grade = $matches[$gradekey];
         }
 
-        $teachercommenttext = $trace;
+        $teachercommenttext = $this->format_feedback($trace);
         $data = new \stdClass();
         $data->attemptnumber = -1;
         if ($submission->autograde) {
@@ -97,6 +102,17 @@ class submission_checker extends \core\task\scheduled_task {
         $assign->save_grade($submission->userid, $data);
 
         $DB->delete_records('block_vmchecker_submissions', array('id' => $submission->id));
+    }
+
+    /**
+     * Returns the fist 300 lines of the output
+     * @param string $trace
+     * @return string
+     */
+    private function format_feedback(string $trace) {
+        $tracelines = explode(PHP_EOL, $trace);
+        $tracelines = array_slice($tracelines, 0, \block_vmchecker\task\submission_checker::NUMBER_OF_FEEDBACK_LINES);
+        return implode(PHP_EOL, $tracelines);
     }
 
     /**
