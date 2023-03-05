@@ -101,7 +101,11 @@ class api {
 
         $rawresponse = '';
         if ($payload !== null) {
-            $rawresponse = $curl->post($cleanurl, json_encode($payload), array('CURLOPT_HTTPHEADER' => array("Content-Type: application/json")));
+            $rawresponse = $curl->post(
+                $cleanurl,
+                json_encode($payload),
+                array('CURLOPT_HTTPHEADER' => array("Content-Type: application/json"))
+            );
         } else {
             $rawresponse = $curl->get($cleanurl, $queryparams);
         }

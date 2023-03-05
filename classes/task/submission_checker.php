@@ -111,7 +111,7 @@ class submission_checker extends \core\task\scheduled_task {
      */
     private function format_feedback(string $trace) {
         $tracelines = explode(PHP_EOL, $trace);
-        $tracelines = array_slice($tracelines, 0, \block_vmchecker\task\submission_checker::NUMBER_OF_FEEDBACK_LINES);
+        $tracelines = array_slice($tracelines, 0, self::NUMBER_OF_FEEDBACK_LINES);
         return implode(PHP_EOL, $tracelines);
     }
 
@@ -121,11 +121,11 @@ class submission_checker extends \core\task\scheduled_task {
      * @return string
      */
     private function clean_trace(string $trace) {
-        $offset = strpos($trace, \block_vmchecker\task\submission_checker::VMCK_NEXT_BEGIN);
+        $offset = strpos($trace, self::VMCK_NEXT_BEGIN);
         $this->log('Found start cleanup mark at: ' . $offset);
-        $trace = substr($trace, $offset + strlen(\block_vmchecker\task\submission_checker::VMCK_NEXT_BEGIN) + 1);   // Add new line.
+        $trace = substr($trace, $offset + strlen(self::VMCK_NEXT_BEGIN) + 1);   // Add new line.
 
-        $offset = strpos($trace, \block_vmchecker\task\submission_checker::VMCK_NEXT_END);
+        $offset = strpos($trace, self::VMCK_NEXT_END);
         $this->log('Found end cleanup mark at: ' . $offset);
         $trace = substr($trace, 0, $offset);
 
