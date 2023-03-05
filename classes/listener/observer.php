@@ -57,13 +57,10 @@ class observer {
             return true;
         }
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, get_config('block_vmchecker', 'backend') . '/' . $previousattempt->uuid . '/cancel');
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $backendurl = get_config('block_vmchecker', 'backend');
+        $api = new \block_vmchecker\backend\api($backendurl);
+        $rawdata = $api->cancel($previousattempt->uuid );
 
-        $rawdata = curl_exec($ch);
         if ($rawdata === false) {
             return false;
         }

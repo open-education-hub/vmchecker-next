@@ -93,34 +93,31 @@ class api {
      * @return object
      */
     private function query_service(string $endpoint, ?array $queryparams, ?array $payload) {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-
-        if ($payload !== null) {
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-        } else {
-            curl_setopt($ch, CURLOPT_HTTPGET, true);
-        }
+        $curl = new \curl();
+        $curl->setopt(array('CURLOPT_TIMEOUT' => 5, 'CURLOPT_CONNECTTIMEOUT' => 2));
 
         $fullurl = $this->apiurl . $endpoint;
         $cleanurl = $this->clean_url($fullurl);   // Reduce multiple / to one 'http://aa///b' -> 'http://a/b'.
-        if ($queryparams !== null) {
-            $cleanurl .= '?' . http_build_query($queryparams);
+
+        $rawresponse = '';
+        if ($payload !== null) {
+            $rawresponse = $curl->post($cleanurl, json_encode($payload), array('CURLOPT_HTTPHEADER' => array("Content-Type: application/json")));
+        } else {
+            $rawresponse = $curl->get($cleanurl, $queryparams);
         }
 
-        curl_setopt($ch, CURLOPT_URL, $cleanurl);
-        $rawdata = curl_exec($ch);
-        if ($rawdata === false) {
+        $info = $curl->get_info();
+        if ($curlerrno = $curl->get_errno()) {
+            // CURL connection error.
+            debugging("Unexpected response from the backend server, CURL error number: $curlerrno");
+            return array();
+        } else if ($info['http_code'] != 200) {
+            // Unexpected error from server.
+            debugging('Unexpected response from the backend server, HTTP code:' . $info['httpcode']);
             return array();
         }
 
-        $response = json_decode($rawdata, true);
-        curl_close($ch);
-
+        $response = json_decode($rawresponse, true);
         return $response;
     }
 
