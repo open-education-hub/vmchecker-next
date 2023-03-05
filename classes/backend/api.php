@@ -95,6 +95,8 @@ class api {
     private function query_service(string $endpoint, ?array $queryparams, ?array $payload) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 3);
 
         if ($payload !== null) {
             curl_setopt($ch, CURLOPT_POST, true);
