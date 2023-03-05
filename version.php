@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'block_vmchecker';
-$plugin->version = 2022112517;  // YYYYMMDDHH (year, month, day, 24-hr time).
+$plugin->version = 2023030517;  // YYYYMMDDHH (year, month, day, 24-hr time).
 $plugin->requires = 2020061500; // YYYYMMDDHH (This is the release version for Moodle 3.9).
 $plugin->maturity = MATURITY_BETA;
 $plugin->release = '1.0.0';
