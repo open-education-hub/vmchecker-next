@@ -6,6 +6,7 @@
 - [Creating Pull Requests](#creating-pull-requests)
   - [Commits and commit history](#commits-and-commit-history)
 - [Help](#help)
+- [References](#references)
 
 ## Requirements
 - You need to have a working Moodle installation. See the following comprehensive [tutorial](https://docs.moodle.org/403/en/Installing_Moodle) from the official Moodle docs!
@@ -52,3 +53,8 @@ We prefer a clean commit history. This means you should squash all fixups and fi
 
 ## Help
 If you get stuck or need help, you can always start a new GitHub Discussion.
+
+## References
+
+- Moodle Block plugin development: https://moodledev.io/docs/4.4/apis/plugintypes/blocks
+- Moodle APIs: https://moodledev.io/docs/4.4/apis
