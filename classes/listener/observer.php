@@ -59,13 +59,11 @@ class observer {
 
         $backendurl = get_config('block_vmchecker', 'backend');
         $api = new \block_vmchecker\backend\api($backendurl);
-        $rawdata = $api->cancel($previousattempt->uuid );
+        $rawdata = $api->cancel($previousattempt->uuid);
 
         if ($rawdata === false) {
             return false;
         }
-
-        curl_close($ch);
 
         $DB->delete_records('block_vmchecker_submissions', array('id' => $previousattempt->id));
         return true;
