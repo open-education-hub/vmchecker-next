@@ -189,7 +189,12 @@ class block_vmchecker extends block_base {
             return $this->content;
         }
 
-        $cm = get_coursemodule_from_instance('assign', $this->config->assignment, 0, false, MUST_EXIST);
+        try {
+            $cm = get_coursemodule_from_instance('assign', $this->config->assignment, 0, false, MUST_EXIST);
+        } catch (dml_missing_record_exception | dml_multiple_records_exception $e) {
+            $this->content->text = get_string('no_assignment_selected', 'block_vmchecker');
+            return $this->content;
+        }
         $context = \context_module::instance($cm->id);
 
         $assign = new \assign($context, null, null);
