@@ -186,7 +186,7 @@ class block_vmchecker extends block_base {
         try {
             $course_info = get_fast_modinfo($this->page->course->id);
             foreach ($course_info->instances['assign'] as $instance) {
-                if ($instance->id == $this->config->assignment) {
+                if ($instance->instance == $this->config->assignment) {
                     $cm = $instance;
                     break;
                 }

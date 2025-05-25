@@ -60,6 +60,10 @@ class api {
      */
     public const TASK_STATE_ERROR = 'error';
 
+
+    private const OPERATION_GET = 'GET';
+    private const OPERATION_POST = 'POST';
+
     /**
      * Class constructor
      * @param string $apiurl The endpoint's URL
@@ -94,7 +98,7 @@ class api {
      * @throws \block_vmchecker\exceptions\api_exception
      * @return object
      */
-    private function query_service(string $endpoint, ?array $queryparams, ?array $payload): array {
+    private function query_service(string $endpoint, string $operation = OPERATION_GET, ?array $queryparams, ?array $payload): array {
         $curl = new \curl();
         $curl->setopt(
             array(
@@ -105,15 +109,31 @@ class api {
         $fullurl = $this->apiurl . $endpoint;
         $cleanurl = $this->clean_url($fullurl);   // Reduce multiple / to one 'http://aa///b' -> 'http://a/b'.
 
+        \block_vmchecker\event\api_called::create(
+            array(
+                'other' => array(
+                    'operation' => $operation,
+                    'method' => $endpoint
+                )
+            )
+        )->trigger();
+
         $rawresponse = '';
-        if ($payload !== null) {
+        if ($operation === self::OPERATION_POST) {
             $rawresponse = $curl->post(
                 $cleanurl,
-                json_encode($payload),
+                $payload ? json_encode($payload) : null,
                 array('CURLOPT_HTTPHEADER' => array("Content-Type: application/json"))
             );
-        } else {
+        } else if ($operation === self::OPERATION_GET) {
             $rawresponse = $curl->get($cleanurl, $queryparams);
+        } else {
+            throw new api_exception(
+                'vmchecker_backend_api_error',
+                'block_vmchecker',
+                array('error' => "Invalid operation type!"),
+                'Operation type: ' . $operation
+            );
         }
 
         $info = $curl->get_info();
@@ -159,7 +179,7 @@ class api {
      * @return array
      */
     public function info(array $queryparams) {
-        return $this->query_service('/info', $queryparams, null);
+        return $this->query_service('/info', self::OPERATION_GET, $queryparams, null);
     }
 
     /**
@@ -174,7 +194,7 @@ class api {
      * @return array
      */
     public function submit(array $payload) {
-        return $this->query_service('/submit', null, $payload);
+        return $this->query_service('/submit', self::OPERATION_POST, null, $payload);
     }
 
     /**
@@ -187,7 +207,7 @@ class api {
      * @return array
      */
     public function archive(array $payload) {
-        return $this->query_service('/archive', null, $payload);
+        return $this->query_service('/archive', self::OPERATION_POST, null, $payload);
     }
 
     /**
@@ -197,7 +217,7 @@ class api {
      * @return object
      */
     public function status(string $uuid) {
-        return $this->query_service('/' . $uuid . '/status', null, null);
+        return $this->query_service('/' . $uuid . '/status', self:: OPERATION_GET, null, null);
     }
 
     /**
@@ -207,7 +227,7 @@ class api {
      * @return object
      */
     public function trace(string $uuid) {
-        return $this->query_service('/' . $uuid . '/trace', null, null);
+        return $this->query_service('/' . $uuid . '/trace', self::OPERATION_GET, null, null);
     }
 
     /**
@@ -217,7 +237,7 @@ class api {
      * @return object
      */
     public function cancel(string $uuid) {
-        return $this->query_service('/' . $uuid . '/cancel', null, null);
+        return $this->query_service('/' . $uuid . '/cancel', self::OPERATION_POST, null, null);
     }
 
     /**
@@ -226,6 +246,6 @@ class api {
      * @return bool
      */
     public function healthcheck() {
-        return !empty($this->query_service('/health', null, null));
+        return !empty($this->query_service('/health', self::OPERATION_GET, null, null));
     }
 }

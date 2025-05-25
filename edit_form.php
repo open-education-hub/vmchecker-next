@@ -72,7 +72,7 @@ class block_vmchecker_edit_form extends block_edit_form {
                 continue;
             }
 
-            $assignments[$activity->id] = $activity->name;
+            $assignments[$activity->instance] = $activity->name;
         }
 
         $mform->addElement('select', 'config_assignment', get_string('assignment', 'block_vmchecker'), $assignments);

@@ -75,7 +75,7 @@ class observer {
      * @return void
      */
     public static function submit(\core\event\base $event) {
-        global $DB;
+        global $DB, $USER;
 
         $data = $event->get_data();
         $submissionfile = $DB->get_record(
@@ -129,13 +129,13 @@ class observer {
 
         // Remove previous feedback for the assignament
         $teachercommenttext = "Waiting for automatic feedback";
-    
+
         $data = new \stdClass();
         $data->attemptnumber = -1;
         $data->grade = -1;
         $data->assignfeedbackcomments_editor = ['text' => $teachercommenttext, 'format' => FORMAT_MOODLE];
-        
-        $assign->save_grade($submission->userid, $data);
+
+        $assign->save_grade($USER->id, $data);
 
         $api = new \block_vmchecker\backend\api(get_config('block_vmchecker', 'backend'));
         $response = $api->submit($payload);
@@ -143,7 +143,7 @@ class observer {
             return;
         }
 
-        $DB->insert_record(
+        $vmck_submission_id = $DB->insert_record(
             'block_vmchecker_submissions',
             array(
                 'userid' => $usersubmission->userid,
@@ -151,7 +151,15 @@ class observer {
                 'uuid' => $response['UUID'],
                 'autograde' => $config->autograding === '1',
                 'updatedat' => time(),
-            )
+            ),
+            true
         );
+
+        \block_vmchecker\event\task_submitted::create(
+            array(
+                'context' => \context_module::instance($cm->id),
+                'objectid' => $vmck_submission_id,
+            )
+        )->trigger();
     }
 }
