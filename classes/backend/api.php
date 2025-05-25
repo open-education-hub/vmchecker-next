@@ -24,6 +24,7 @@
 
 namespace block_vmchecker\backend;
 
+use \block_vmchecker\exceptions\api_exception;
 
 /**
  * Definition of the backend API for VMChecker Next.
@@ -90,11 +91,16 @@ class api {
      * @param string $endpoint
      * @param array $queryparams
      * @param array $payload
+     * @throws \block_vmchecker\exceptions\api_exception
      * @return object
      */
-    private function query_service(string $endpoint, ?array $queryparams, ?array $payload) {
+    private function query_service(string $endpoint, ?array $queryparams, ?array $payload): array {
         $curl = new \curl();
-        $curl->setopt(array('CURLOPT_TIMEOUT' => 5, 'CURLOPT_CONNECTTIMEOUT' => 2));
+        $curl->setopt(
+            array(
+                'CURLOPT_TIMEOUT' => 10,
+                'CURLOPT_CONNECTTIMEOUT' => 5)
+        );
 
         $fullurl = $this->apiurl . $endpoint;
         $cleanurl = $this->clean_url($fullurl);   // Reduce multiple / to one 'http://aa///b' -> 'http://a/b'.
@@ -113,15 +119,31 @@ class api {
         $info = $curl->get_info();
         if ($curlerrno = $curl->get_errno()) {
             // CURL connection error.
-            debugging("Unexpected response from the backend server, CURL error number: $curlerrno");
-            return array();
+            throw new api_exception(
+                'vmchecker_backend_api_error',
+                'block_vmchecker',
+                array('error' => "Unexpected cURL error!"),
+                'cURL error number: ' . $curlerrno
+            );
         } else if ($info['http_code'] != 200) {
-            // Unexpected error from server.
-            debugging('Unexpected response from the backend server, HTTP code:' . $info['httpcode']);
-            return array();
+            throw new api_exception(
+                'vmchecker_backend_api_error',
+                'block_vmchecker',
+                array('error' => "Unexpected response from the backend server!"),
+                'HTTP error code: ' . $info['http_code']
+            );
         }
 
         $response = json_decode($rawresponse, true);
+        if (!is_array($response)) {
+            throw new api_exception(
+                'vmchecker_backend_api_error',
+                'block_vmchecker',
+                array('error' => "Invalid response format from the backend server!"),
+                'Response is not an array'
+            );
+        }
+
         return $response;
     }
 
@@ -133,6 +155,7 @@ class api {
      *      moodle_username?:   string,
      *      count?:             int
      *      order?:             str,     “asc” | “desc” - by id; default: desc
+     * @throws \block_vmchecker\exceptions\api_exception
      * @return array
      */
     public function info(array $queryparams) {
@@ -147,6 +170,7 @@ class api {
      *      gitlab_branch:          string
      *      username:               string
      *      archive:                string, archive content - base64 encoded.
+     * @throws \block_vmchecker\exceptions\api_exception
      * @return array
      */
     public function submit(array $payload) {
@@ -159,6 +183,7 @@ class api {
      *      gitlab_private_token:   string
      *      gitlab_project_id:      int
      *      gitlab_branch:          string
+     * @throws \block_vmchecker\exceptions\api_exception
      * @return array
      */
     public function archive(array $payload) {
@@ -168,6 +193,7 @@ class api {
     /**
      * Get status endpoint.
      * @param string $uuid UUID of the task to check.
+     * @throws \block_vmchecker\exceptions\api_exception
      * @return object
      */
     public function status(string $uuid) {
@@ -177,6 +203,7 @@ class api {
     /**
      * Get trace endpoint.
      * @param string $uuid UUID of the task to check.
+     * @throws \block_vmchecker\exceptions\api_exception
      * @return object
      */
     public function trace(string $uuid) {
@@ -186,6 +213,7 @@ class api {
     /**
      * Cancel submission endpoint
      * @param  string $uuid UUID of the task to cancel.
+     * @throws \block_vmchecker\exceptions\api_exception
      * @return object
      */
     public function cancel(string $uuid) {
@@ -194,6 +222,7 @@ class api {
 
     /**
      * Checks if the API endpoint is alive.
+     * @throws \block_vmchecker\exceptions\api_exception
      * @return bool
      */
     public function healthcheck() {

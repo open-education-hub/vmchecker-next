@@ -26,6 +26,8 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/classes/form/block_form.php');
 require_once(__DIR__ . '/classes/form/submit_form.php');
+require_once(__DIR__ . '/classes/backend/api.php');
+require_once(__DIR__ . '/classes/exceptions/api_exception.php');
 require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
 /**
@@ -56,15 +58,7 @@ class block_vmchecker extends block_base {
      * Set thte tile of the block.
      * @return void
      */
-    private function set_title() {
-        if (!$this->config->assignment) {
-            return;
-        }
-
-        $cm = get_coursemodule_from_instance('assign', $this->config->assignment, 0, false, MUST_EXIST);
-        $context = \context_module::instance($cm->id);
-
-        $assign = new \assign($context, null, null);
+    private function set_title(assign $assign) {
         $this->title = get_string('vmchecker', 'block_vmchecker') . ' - ' . $assign->get_default_instance()->name;
     }
 
@@ -190,7 +184,13 @@ class block_vmchecker extends block_base {
         }
 
         try {
-            $cm = get_coursemodule_from_instance('assign', $this->config->assignment, 0, false, MUST_EXIST);
+            $course_info = get_fast_modinfo($this->page->course->id);
+            foreach ($course_info->instances['assign'] as $instance) {
+                if ($instance->id == $this->config->assignment) {
+                    $cm = $instance;
+                    break;
+                }
+            }
         } catch (dml_missing_record_exception | dml_multiple_records_exception $e) {
             $this->content->text = get_string('no_assignment_selected', 'block_vmchecker');
             return $this->content;
@@ -199,7 +199,7 @@ class block_vmchecker extends block_base {
 
         $assign = new \assign($context, null, null);
 
-        $this->set_title();
+        $this->set_title($assign);
         $backendurl = get_config('block_vmchecker', 'backend');
         $api = new \block_vmchecker\backend\api($backendurl);
 

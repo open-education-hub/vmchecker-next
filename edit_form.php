@@ -65,10 +65,10 @@ class block_vmchecker_edit_form extends block_edit_form {
         $mform->settype('config_gitlab_branch', PARAM_TEXT);
         $mform->setDefault('config_gitlab_branch', 'main');
 
-        $courseactivities = get_array_of_activities($this->page->course->id);
+        $courseactivities = get_fast_modinfo($this->page->course->id)->get_cms();
         $assignments = array();
         foreach ($courseactivities as $activity) {
-            if ($activity->mod != "assign") {
+            if ($activity->modname != "assign") {
                 continue;
             }
 
