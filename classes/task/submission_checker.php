@@ -29,6 +29,7 @@ use qbank_managecategories\output\categories;
 defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../../../config.php');
+require_once($CFG->dirroot . '/blocks/vmchecker/classes/logger/logger.php');
 require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
 use \block_vmchecker\logger\logger;
@@ -44,7 +45,7 @@ class submission_checker extends \core\task\scheduled_task {
     /**
      * @var logger logger
      */
-    private logger $logger = new logger(['VMChecker', 'submission_checker']);
+    private logger $logger;
 
     /**
      * Marker for begining of the trace.
@@ -61,6 +62,14 @@ class submission_checker extends \core\task\scheduled_task {
      * @var int
      */
     private const NUMBER_OF_FEEDBACK_LINES = 300;
+
+    /**
+     * Constructor for the submission checker task.
+     * Initializes the logger.
+     */
+    public function __construct() {
+        $this->logger = new logger(['VMChecker', 'submission_checker']);
+    }
 
     /**
      * Task name

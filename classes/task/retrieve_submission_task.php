@@ -27,6 +27,7 @@ namespace block_vmchecker\task;
 defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../../../config.php');
+require_once($CFG->dirroot . '/blocks/vmchecker/classes/logger/logger.php');
 require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
 use \block_vmchecker\logger\logger;
@@ -42,7 +43,15 @@ class retrieve_submission_task extends \core\task\adhoc_task {
     /**
      * @var logger logger
      */
-    private logger $logger = new logger(['VMChecker', 'retrieve_submission_task']);
+    private logger $logger;
+
+    /**
+     * Constructor for the retrive submission task.
+     * Initializes the logger.
+     */
+    public function __construct() {
+        $this->logger = new logger(['VMChecker', 'retrieve_submission_task']);
+    }
 
     /**
      * Execution handler
