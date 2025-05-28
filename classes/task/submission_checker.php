@@ -24,10 +24,14 @@
 
 namespace block_vmchecker\task;
 
+use qbank_managecategories\output\categories;
+
 defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../../../config.php');
 require_once($CFG->dirroot . '/mod/assign/locallib.php');
+
+use \block_vmchecker\logger\logger;
 
 /**
  * Definition of the submission checker task.
@@ -36,6 +40,11 @@ require_once($CFG->dirroot . '/mod/assign/locallib.php');
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class submission_checker extends \core\task\scheduled_task {
+
+    /**
+     * @var logger logger
+     */
+    private logger $logger = new logger(['VMChecker', 'submission_checker']);
 
     /**
      * Marker for begining of the trace.
@@ -70,9 +79,15 @@ class submission_checker extends \core\task\scheduled_task {
     private function done_submission($api, $submission) {
         global $DB;
 
-        $response = $api->trace($submission->uuid);
+        try {
+            $response = $api->trace($submission->uuid);
+        } catch (\block_vmchecker\exceptions\api_exception $e) {
+            $this->logger->error('Failed to retrieve the trace for task ' . $submission->id . ': ' . $e->getMessage());
+            return;
+        }
+
         $trace = $this->clean_trace(base64_decode($response['trace']));
-        $this->log('Trace:\n' . $trace);
+        $this->logger->info('Trace:\n' . $trace);
 
         $cm = get_coursemodule_from_instance('assign', $submission->assignid, 0, false, MUST_EXIST);
         $context = \context_module::instance($cm->id);
@@ -122,23 +137,14 @@ class submission_checker extends \core\task\scheduled_task {
      */
     private function clean_trace(string $trace) {
         $offset = strpos($trace, self::VMCK_NEXT_BEGIN);
-        $this->log('Found start cleanup mark at: ' . $offset);
+        $this->logger->info('Found start cleanup mark at: ' . $offset);
         $trace = substr($trace, $offset + strlen(self::VMCK_NEXT_BEGIN) + 1);   // Add new line.
 
         $offset = strpos($trace, self::VMCK_NEXT_END);
-        $this->log('Found end cleanup mark at: ' . $offset);
+        $this->logger->info('Found end cleanup mark at: ' . $offset);
         $trace = substr($trace, 0, $offset);
 
         return $trace;
-    }
-
-    /**
-     * Logger
-     * @param string $msg
-     * @return void
-     */
-    private function log(string $msg) {
-        mtrace('[' . time() . '] ' . $msg);
     }
 
     /**
@@ -147,8 +153,6 @@ class submission_checker extends \core\task\scheduled_task {
      */
     public function execute() {
         global $DB;
-
-        $this->log('Starting VMChecker task');
 
         $activesubmissions = $DB->get_records(
             'block_vmchecker_submissions',
@@ -160,26 +164,27 @@ class submission_checker extends \core\task\scheduled_task {
         );
 
         if (!$activesubmissions || count($activesubmissions) == 0) {
+            $this->logger->info('No submissions to check. Exiting.');
             return;
         }
 
-        $this->log('Found ' . count($activesubmissions) . ' submissions to be checked');
+        $this->logger->info('Found ' . count($activesubmissions) . ' submissions to be checked');
         $api = new \block_vmchecker\backend\api(get_config('block_vmchecker', 'backend'));
 
         foreach ($activesubmissions as $submission) {
-            $this->log('Checking task ' . $submission->id);
+            $this->logger->info('Checking task ' . $submission->id);
 
             $submission->updatedat = time();
             $DB->update_record('block_vmchecker_submissions', $submission);
 
-            $response = $api->status($submission->uuid);
-            if (empty($response)) {
-                $this->log('Failed to retrieve data for task ' . $submission->id);
+            try {
+                $response = $api->status($submission->uuid);
+            } catch (\block_vmchecker\exceptions\api_exception $e) {
+                $this->logger->error('Failed to retrieve the status for task ' . $submission->id . ': ' . $e->getMessage());
                 continue;
             }
 
-            $this->log('Task status is ' . $response['status']);
-
+            $this->logger->info('Task ' . $submission->id . ' with UUID ' . $submission->uuid . ' status is ' . $response['status']);
             switch ($response['status']) {
                 case \block_vmchecker\backend\api::TASK_STATE_DONE:
                     $this->done_submission($api, $submission);

@@ -29,6 +29,8 @@ defined('MOODLE_INTERNAL') || die();
 require_once(__DIR__ . '/../../../../config.php');
 require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
+use \block_vmchecker\logger\logger;
+
 /**
  * Definition of the retrieving of a submission task.
  *
@@ -37,14 +39,10 @@ require_once($CFG->dirroot . '/mod/assign/locallib.php');
  */
 class retrieve_submission_task extends \core\task\adhoc_task {
 
-     /**
-      * Logger
-      * @param string $msg
-      * @return void
-      */
-    private function log(string $msg) {
-        mtrace('[' . time() . '] ' . $msg);
-    }
+    /**
+     * @var logger logger
+     */
+    private logger $logger = new logger(['VMChecker', 'retrieve_submission_task']);
 
     /**
      * Execution handler
@@ -54,20 +52,20 @@ class retrieve_submission_task extends \core\task\adhoc_task {
         $data = $this->get_custom_data();
 
         $api = new \block_vmchecker\backend\api(get_config('block_vmchecker', 'backend'));
-        $response = $api->archive(
-            array(
-                "gitlab_private_token" => $data->gitlab_private_token,
-                "gitlab_project_id" => $data->gitlab_project_id,
-                "gitlab_branch" => $data->gitlab_branch,
-            )
-        );
-
-        if (empty($response)) {
-            $this->log('Failed to retrieve archive for user ' . $data->username);
+        try {
+            $response = $api->archive(
+                array(
+                    "gitlab_private_token" => $data->gitlab_private_token,
+                    "gitlab_project_id" => $data->gitlab_project_id,
+                    "gitlab_branch" => $data->gitlab_branch,
+                )
+            );
+        } catch (\block_vmchecker\exceptions\api_exception $e) {
+            $this->logger->error('Failed to retrieve archive for user ' . $data->username . ' in assignment ' . $data->assignmentid . ': ' . $e->getMessage());
             return;
         }
 
-        $this->log('Retrieved archive for user ' . $data->username . ' with id ' . strval($data->userid));
+        $this->logger->info('Retrieved archive for user ' . $data->username . ' in assignment ' . $data->assignmentid);
 
         $cm = get_coursemodule_from_instance('assign', $data->assignmentid, 0, false, MUST_EXIST);
         $context = \context_module::instance($cm->id);

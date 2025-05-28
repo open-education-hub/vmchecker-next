@@ -29,6 +29,8 @@ defined('MOODLE_INTERNAL') || die();
 require_once(__DIR__ . '/../../../../config.php');
 require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
+use block_vmchecker\logger\logger;
+
 /**
  * Definition of rechecking of submissions task.
  *
@@ -38,13 +40,10 @@ require_once($CFG->dirroot . '/mod/assign/locallib.php');
 class recheck_task extends \core\task\adhoc_task {
 
     /**
-     * Logger
-     * @param string $msg
-     * @return void
+     * @var logger logger
      */
-    private function log(string $msg) {
-        mtrace('[' . time() . '] ' . $msg);
-    }
+    private logger $logger = new logger(['VMChecker', 'recheck_task']);
+
 
     /**
      * Execution handler
@@ -61,17 +60,19 @@ class recheck_task extends \core\task\adhoc_task {
 
         $api = new \block_vmchecker\backend\api(get_config('block_vmchecker', 'backend'));
 
-        $this->log(count($data->users) . ' tasks to recheck');
+        $this->logger->info('There are ' . count($data->users) . ' tasks to recheck');
 
         foreach ($data->users as $userid) {
             $submission = $assign->get_user_submission($userid, false);
             if ($submission == null || $submission->status != ASSIGN_SUBMISSION_STATUS_SUBMITTED) {
+                $this->logger->error('User ' . $userid . ' in assignment ' . $data->assignid . ' has no valid submission to recheck');
                 continue;
             }
 
             $submitedfiles = (new \assign_submission_file($assign, null))->get_files($submission, new \stdClass());
             if (count($submitedfiles) !== 1) {
-                return;
+                $this->logger->error('User ' . $userid . ' in assignment ' . $data->assignid . ' has an invalid number of submitted files: ' . count($submitedfiles));
+                continue;
             }
 
             $submitedfile = $submitedfiles[array_keys($submitedfiles)[0]];
@@ -84,8 +85,12 @@ class recheck_task extends \core\task\adhoc_task {
                 'archive' => base64_encode($submitedfile->get_content()),
             );
 
-            $response = $api->submit($payload);
-            if (empty($response)) {
+            $this->logger->info('Rechecking submission for user ' . $userid . ' in assignment ' . $data->assignid);
+
+            try {
+                $response = $api->submit($payload);
+            } catch (\block_vmchecker\exceptions\api_exception $e) {
+                $this->logger->error('Failed to recheck submission for user ' . $userid . ' in assignment ' . $data->assignid . ': ' . $e->getMessage());
                 continue;
             }
 
