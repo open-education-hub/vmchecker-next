@@ -39,6 +39,11 @@ class block_vmchecker_edit_form extends block_edit_form {
         $mform->addElement('header', 'config_vmchecker_header', get_string('header', 'block_vmchecker'));
         $mform->setExpanded('config_vmchecker_header');
 
+        $mform->addElement('select', 'config_assignment_type', get_string('assignment_type', 'block_vmchecker'), [
+            'standard' => get_string('assignment_type_standard', 'block_vmchecker'),
+            'interactive' => get_string('assignment_type_interactive', 'block_vmchecker'),
+        ]);
+
         $mform->addElement(
             'select',
             'config_autograding',
@@ -53,17 +58,21 @@ class block_vmchecker_edit_form extends block_edit_form {
         $mform->settype('config_autograding', PARAM_BOOL);
 
         $mform->addElement('text', 'config_gitlab_project_id', get_string('gitlab_project_id', 'block_vmchecker'));
-        $mform->addRule('config_gitlab_project_id', null, 'required', null, 'client');
         $mform->settype('config_gitlab_project_id', PARAM_INT);
+        $mform->hideIf('config_gitlab_project_id', 'config_assignment_type', 'eq', 'interactive');
 
         $mform->addElement('text', 'config_gitlab_private_token', get_string('gitlab_private_token', 'block_vmchecker'));
-        $mform->addRule('config_gitlab_private_token', null, 'required', null, 'client');
         $mform->settype('config_gitlab_private_token', PARAM_TEXT);
+        $mform->hideIf('config_gitlab_private_token', 'config_assignment_type', 'eq', 'interactive');
 
         $mform->addElement('text', 'config_gitlab_branch', get_string('gitlab_branch', 'block_vmchecker'));
-        $mform->addRule('config_gitlab_branch', null, 'required', null, 'client');
         $mform->settype('config_gitlab_branch', PARAM_TEXT);
         $mform->setDefault('config_gitlab_branch', 'main');
+        $mform->hideIf('config_gitlab_branch', 'config_assignment_type', 'eq', 'interactive');
+
+        $mform->addElement('textarea', 'config_public_key', get_string('assignment_public_key', 'block_vmchecker'), 'rows="10" cols="50" wrap="virtual"');
+        $mform->setType('config_public_key', PARAM_TEXT);
+        $mform->hideIf('config_public_key', 'config_assignment_type', 'eq', 'standard');
 
         $courseactivities = get_fast_modinfo($this->page->course->id)->get_cms();
         $assignments = array();
