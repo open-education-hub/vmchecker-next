@@ -161,6 +161,40 @@ class block_vmchecker extends block_base {
         return true;
     }
 
+
+    /**
+     * Loads the assignment of the current block.
+     * @param int $assignmentid
+     * @param int $courseid
+     * @return \assign|null
+     */
+    private function load_assignment(int $assignmentid, int $courseid): \assign|null {
+        if ($assignmentid == null) {
+            return null;
+        }
+
+        $context = null;
+        try {
+            $course_info = get_fast_modinfo($courseid);
+            foreach ($course_info->instances['assign'] as $instance) {
+                if ($instance->instance != $assignmentid) {
+                    continue;
+                }
+
+                $context = \context_module::instance($instance->id);
+                break;
+            }
+        } catch (dml_missing_record_exception | dml_multiple_records_exception $e) {
+            return null;
+        }
+
+        if (!$context) {
+            return null;
+        }
+
+        return new \assign($context, null, null);
+    }
+
     /**
      * Get the HTML content for the block.
      * @return string
@@ -178,26 +212,11 @@ class block_vmchecker extends block_base {
 
         $this->content = new stdClass();
 
-        if ($this->config->assignment == null) {
+        $assign = $this->load_assignment($this->config->assignment, $this->page->course->id);
+        if ($assign == null) {
             $this->content->text = get_string('no_assignment_selected', 'block_vmchecker');
             return $this->content;
         }
-
-        try {
-            $course_info = get_fast_modinfo($this->page->course->id);
-            foreach ($course_info->instances['assign'] as $instance) {
-                if ($instance->instance == $this->config->assignment) {
-                    $cm = $instance;
-                    break;
-                }
-            }
-        } catch (dml_missing_record_exception | dml_multiple_records_exception $e) {
-            $this->content->text = get_string('no_assignment_selected', 'block_vmchecker');
-            return $this->content;
-        }
-        $context = \context_module::instance($cm->id);
-
-        $assign = new \assign($context, null, null);
 
         $this->set_title($assign);
         $backendurl = get_config('block_vmchecker', 'backend');
@@ -315,6 +334,10 @@ class block_vmchecker extends block_base {
      */
     public function instance_config_save($data, $nolongerused = false) {
         global $DB;
+
+        if (!$DB->record_exists('block_vmchecker_options', array('blockinstanceid' => $this->instance->id))) {
+            $this->instance_create();
+        }
 
         parent::instance_config_save($data, $nolongerused);
         $DB->update_record('block_vmchecker_options', [
