@@ -201,6 +201,22 @@ class submission_checker extends \core\task\scheduled_task {
                 case \block_vmchecker\backend\api::TASK_STATE_ERROR:
                     $DB->delete_records('block_vmchecker_submissions', array('id' => $submission->id));
                     break;
+                default:
+                    // Remove previous feedback for the assignament
+                    $teachercommenttext = "Waiting for automatic feedback";
+
+                    $data = new \stdClass();
+                    $data->attemptnumber = -1;
+                    $data->grade = -1;
+                    $data->assignfeedbackcomments_editor = ['text' => $teachercommenttext, 'format' => FORMAT_MOODLE];
+
+                    $cm = get_coursemodule_from_instance('assign', $submission->assignid, 0, false, MUST_EXIST);
+                    $context = \context_module::instance($cm->id);
+
+                    $assign = new \assign($context, null, null);
+                    $assign->save_grade($submission->userid, $data);
+
+                    break;
             }
         }
     }

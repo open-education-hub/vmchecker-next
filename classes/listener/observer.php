@@ -127,16 +127,6 @@ class observer {
             'archive' => base64_encode($submitedfile->get_content()),
         );
 
-        // Remove previous feedback for the assignament
-        $teachercommenttext = "Waiting for automatic feedback";
-
-        $data = new \stdClass();
-        $data->attemptnumber = -1;
-        $data->grade = -1;
-        $data->assignfeedbackcomments_editor = ['text' => $teachercommenttext, 'format' => FORMAT_MOODLE];
-
-        $assign->save_grade($USER->id, $data);
-
         $api = new \block_vmchecker\backend\api(get_config('block_vmchecker', 'backend'));
         $response = $api->submit($payload);
         if (empty($response)) {
